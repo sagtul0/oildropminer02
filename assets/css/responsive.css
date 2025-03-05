@@ -1,0 +1,61 @@
+/* Mobile First Design - بهینه‌سازی برای موبایل */
+
+/* استایل‌های عمومی */
+.container {
+    width: 95%;
+    margin: auto;
+    padding: 10px;
+}
+
+/* دکمه‌ها و کارت‌ها */
+.card {
+    margin: 15px 0;
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    box-shadow: 0 2px 5px rgba(255, 255, 255, 0.1);
+}
+
+/* دکمه‌های واکنش‌گرا */
+.btn-custom {
+    display: block;
+    width: 100%;
+    text-align: center;
+    font-size: 1rem;
+    padding: 12px;
+}
+
+/* تنظیمات برای تبلت‌ها و صفحه‌های متوسط */
+@media screen and (min-width: 768px) {
+    .container {
+        max-width: 750px;
+    }
+    .card {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+    }
+}
+
+/* تنظیمات برای لپ‌تاپ و دسکتاپ */
+@media screen and (min-width: 1024px) {
+    .container {
+        max-width: 1000px;
+    }
+    .card {
+        max-width: 800px;
+        margin: 20px auto;
+        box-shadow: 0 4px 8px rgba(255, 255, 255, 0.2);
+    }
+}
+
+/* بهینه‌سازی برای مانیتورهای بزرگ */
+@media screen and (min-width: 1440px) {
+    .container {
+        max-width: 1200px;
+    }
+    .card {
+        max-width: 900px;
+    }
+}

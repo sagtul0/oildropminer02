@@ -1,0 +1,146 @@
+body {
+  background: url('../images/backgrounds/auth_background_simple.jpg') no-repeat center center fixed;
+  background-size: cover;
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  font-family: 'Arial', sans-serif;
+  position: relative;
+}
+
+body::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5); /* لایه نیمه‌شفاف برای خوانایی بهتر */
+  z-index: -1;
+}
+
+#particles-js {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+}
+
+.container {
+  max-width: 1200px; /* بزرگ‌تر برای نمایش بهتر کارت‌ها */
+  margin-top: 5%;
+  position: relative;
+  z-index: 1;
+}
+
+.dashboard-card {
+  background: rgba(20, 20, 20, 0.9);
+  border: 2px solid #D4A017;
+  border-radius: 15px;
+  padding: 20px;
+  margin-bottom: 20px;
+  transition: all 0.3s ease;
+  box-shadow: 0 5px 15px rgba(212, 160, 23, 0.3);
+}
+
+.dashboard-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 25px rgba(212, 160, 23, 0.5);
+}
+
+.dashboard-card h5 {
+  color: #ffcc00; /* تغییر به طلایی روشن برای عنوان‌ها */
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+.dashboard-card .card-text strong {
+  color: #ffffff; /* تغییر به سفید برای تضمین خوانایی */
+  font-weight: bold;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7); /* سایه مشکی برای کنتراست بهتر */
+  font-size: 1.1rem; /* کمی بزرگ‌تر برای برجستگی */
+}
+
+.dashboard-card .card-text {
+  color: #ffffff; /* تغییر متن‌های معمولی به سفید */
+}
+
+.dashboard-card .text-success, .dashboard-card .text-danger {
+  color: #ffffff; /* تغییر به سفید برای خوانایی بهتر */
+  font-size: 1.1rem;
+}
+
+.card {
+  background: rgba(20, 20, 20, 0.9);
+  border: 1px solid #b8860b;
+  border-radius: 10px;
+  animation: fadeIn 1s ease-in;
+}
+
+.oil-input {
+  background-color: #333;
+  border: 1px solid #b8860b;
+  color: #fff;
+  transition: all 0.3s ease;
+}
+
+.oil-input:focus {
+  border-color: #daa520;
+  box-shadow: 0 0 10px rgba(218, 165, 32, 0.5);
+  background-color: #444;
+}
+
+.oil-btn {
+  background-color: #b8860b;
+  border: none;
+  transition: all 0.3s ease;
+}
+
+.oil-btn:hover {
+  background-color: #daa520;
+  transform: scale(1.05);
+}
+
+/* استایل برای دکمه ماین به‌صورت تصویر گرد */
+.mine-button-container {
+  display: flex;
+  justify-content: center;
+  margin: 20px 0;
+}
+
+.mine-image {
+  width: 200px;
+  height: 200px;
+  border-radius: 50%; /* شکل گرد */
+  object-fit: cover;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 5px solid #D4A017; /* حاشیه طلایی */
+  box-shadow: 0 0 15px rgba(212, 160, 23, 0.7); /* سایه درخشان */
+}
+
+.mine-image:hover {
+  transform: scale(1.1);
+  box-shadow: 0 0 25px rgba(212, 160, 23, 1);
+}
+
+.mine-image.shine {
+  animation: shine 0.5s ease-in-out;
+}
+
+@keyframes shine {
+  0% { box-shadow: 0 0 15px rgba(212, 160, 23, 0.7); }
+  50% { box-shadow: 0 0 25px rgba(212, 160, 23, 1); }
+  100% { box-shadow: 0 0 15px rgba(212, 160, 23, 0.7); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}

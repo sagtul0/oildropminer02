@@ -1,0 +1,24 @@
+# فعال کردن بازنویسی URL
+RewriteEngine On
+
+# ریدایرکت /purchase به /plans.php
+RewriteRule ^purchase$ plans.php [L]
+
+# بررسی کن که اگر فایل یا پوشه‌ای وجود نداشت، درخواست‌ها به index.php ارسال شوند
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ index.php [L]
+
+# تنظیم کش برای فایل‌های استاتیک
+<FilesMatch "\.(css|js|jpg|png|gif|svg|woff|woff2|ttf|eot|ico)$">
+    Header set Cache-Control "max-age=31536000, public"
+</FilesMatch>
+
+# تنظیم دسترسی برای سرور
+<IfModule mod_headers.c>
+    Header set Access-Control-Allow-Origin "*"
+</IfModule>
+<Files "config/config_telegram.php">
+    Order allow,deny
+    Deny from all
+</Files>
