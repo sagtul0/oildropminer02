@@ -1,16 +1,23 @@
 <?php
-// telegram.php (بروزرسانی‌شده برای رفع خطای cURL)
+// telegram.php (بروزرسانی‌شده برای Render)
 include 'config.php'; // اتصال به دیتابیس
-include 'config/config_telegram.php'; // شامل توکن ربات (مسیر به‌روز شده)
 
-$bot_token = TELEGRAM_BOT_TOKEN;
+// گرفتن توکن از متغیر محیطی Render
+$bot_token = getenv('TELEGRAM_BOT_TOKEN');
+if (!$bot_token) {
+    error_log("TELEGRAM_BOT_TOKEN is not set in environment variables!");
+    die("Error: TELEGRAM_BOT_TOKEN not found. Check Render environment variables.");
+}
 
 // دریافت اطلاعات از ربات تلگرام با file_get_contents
 $update_json = file_get_contents('php://input');
 if ($update_json === false) {
-    error_log("Error reading php://input: " . error_get_last()['message']);
-    die("Error: Cannot read Webhook data.");
+    error_log("Error reading php://input: " . (error_get_last()['message'] ?? 'Unknown error'));
+    die("Error: Cannot read Webhook data. Check php.ini (allow_url_fopen) and server.");
 }
+
+// لاگ کردن داده‌های دریافتی برای دیباگ
+error_log("Webhook data received: " . $update_json);
 
 $update = json_decode($update_json, true);
 
@@ -20,6 +27,8 @@ if (isset($update['message'])) {
     $username = $update['message']['from']['username'] ?? '';
     $first_name = $update['message']['from']['first_name'] ?? '';
     $text = $update['message']['text'] ?? '';
+
+    error_log("Message received - Chat ID: $chat_id, User ID: $user_id, Text: $text");
 
     // ذخیره اطلاعات کاربر در دیتابیس (اگر وجود نداره)
     $stmt = $conn->prepare("SELECT id FROM users WHERE telegram_id = ?");
@@ -43,6 +52,8 @@ if (isset($update['message'])) {
         // کاربر قبلاً ثبت شده، پیام بده
         sendTelegramMessage($bot_token, $chat_id, "You are already registered with Oil Drop Miner! Use /start to see commands.");
     }
+} else {
+    error_log("No message found in Webhook data.");
 }
 
 // تابع ارسال پیام به تلگرام با cURL
