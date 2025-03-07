@@ -1,14 +1,15 @@
 <?php
-$host = "localhost";
-$username = "root"; // نام کاربری دیتابیس (معمولاً root در XAMPP)
-$password = ""; // رمز عبور دیتابیس (در XAMPP معمولاً خالی است)
-$database = "oil_drop_miner"; // نام دیتابیس
+// اطلاعات دیتابیس از Render
+$conn_string = "host=dpg-cv4gtnij1k6c73bjrrhg-a.oregon-postgres.render.com port=5432 dbname=oildropminer_db user=oildropminer_db_user password=WXzD1SqGI9Vx8nZ966VK4dUNH1p6f2QGWXzD1SqGI9Vx8nZ966VK4dUNH1p6f2QG";
 
-// اتصال به دیتابیس
-$conn = new mysqli($host, $username, $password, $database);
+// اتصال به دیتابیس PostgreSQL
+$conn = pg_connect($conn_string);
 
-if ($conn->connect_error) {
-    error_log("Connection failed: " . $conn->connect_error);
-    die("Connection failed: " . $conn->connect_error);
+// چک کردن اتصال
+if (!$conn) {
+    die("Connection failed: " . pg_last_error());
 }
+
+// تنظیم کدگذاری برای فارسی
+pg_set_client_encoding($conn, "UTF8");
 ?>
