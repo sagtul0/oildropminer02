@@ -1,11 +1,17 @@
 <?php
-$host = 'your-postgres-host.render.com'; // از اطلاعات اتصال
-$db_name = 'oildropminer_db';
-$username = 'your-username';
-$password = 'your-password';
-$conn = new mysqli($host, $username, $password, $db_name);
+// اطلاعات دیتابیس از Render
+$conn_string = "host=dpg-cv4gtnij1k6c73bjrrhg-a.oregon-postgres.render.com port=5432 dbname=oildropminer_db user=oildropminer_db_user password=WXzD1SqGI9Vx8nZ966VK4dUNH1p6f2QGWXzD1SqGI9Vx8nZ966VK4dUNH1p6f2QG";
 
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
+// اتصال به دیتابیس PostgreSQL
+$conn = pg_connect($conn_string);
+
+// چک کردن اتصال
+if (!$conn) {
+    die("Connection failed: " . pg_last_error());
 }
+
+// تنظیم کدگذاری برای فارسی
+pg_set_client_encoding($conn, "UTF8");
+
+// می‌تونی اینجا کدهای دیگه‌ت (مثل تلگرام) رو اضافه کنی
 ?>
