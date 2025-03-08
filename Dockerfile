@@ -5,10 +5,11 @@ RUN apt-get update && apt-get install -y \
     libpq-dev \
     && docker-php-ext-install pdo pdo_pgsql
 
-# کپی کردن فایل‌های پروژه
+# کپی کردن فایل‌ها و اسکریپت
 COPY . /var/www/html
-RUN chmod -R 755 /var/www/html
+COPY entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/entrypoint.sh
 
 # تنظیم پورت
 EXPOSE 8080
-CMD ["php", "-S", "0.0.0.0:${PORT:-8080}", "telegram.php"]
+CMD ["entrypoint.sh"]
