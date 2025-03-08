@@ -1,8 +1,23 @@
 <?php
-$host = getenv('DB_HOST') ?: 'postgres-render.com';
-$dbname = getenv('DB_NAME') ?: 'oildropminer_db';
-$username = getenv('DB_USERNAME') ?: 'oildropminer_db_user';
-$password = getenv('DB_PASSWORD') ?: '';
+$host = getenv('DB_HOST');
+if (!$host) {
+    die("Error: DB_HOST environment variable not set.");
+}
+
+$dbname = getenv('DB_NAME');
+if (!$dbname) {
+    die("Error: DB_NAME environment variable not set.");
+}
+
+$username = getenv('DB_USERNAME');
+if (!$username) {
+    die("Error: DB_USERNAME environment variable not set.");
+}
+
+$password = getenv('DB_PASSWORD');
+if (!$password) {
+    die("Error: DB_PASSWORD environment variable not set.");
+}
 
 try {
     $pdo = new PDO("pgsql:host=$host;dbname=$dbname", $username, $password);
