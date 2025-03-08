@@ -1,0 +1,17 @@
+databases:
+  - name: oildropminer_db
+    databaseName: oildropminer_db
+    user: oildropminer_db_user
+    # دیگر تنظیمات دیتابیس (اگه لازم بود)
+
+services:
+  - type: web
+    name: oildropminer02
+    env: php
+    buildCommand: "composer install -n --prefer-dist" # اگه از Composer استفاده می‌کنی
+    startCommand: "php -S 0.0.0.0:${PORT} index.php" # یا مسیر فایل اصلی PHP
+    envVars:
+      - key: DATABASE_URL
+        value: "postgres://oildropminer_db_user:WXzD1SqGI9Vx8nZ966VK4dUNH1p6f2QGWXzD1SqGI9Vx8nZ966VK4dUNH1p6f2QG@dpg-cv4gtnij1k6c73bjrrhg-a.oregon-postgres.render.com:5432/oildropminer_db"
+    regions:
+      - oregon
