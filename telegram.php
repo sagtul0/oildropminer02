@@ -1,10 +1,10 @@
 <?php
-// telegram.php (بروزرسانی‌شده برای Render و PostgreSQL)
+// telegram.php (به‌روز شده برای بات تلگرام)
 ini_set('display_errors', 1);
 ini_set('log_errors', 1);
 error_log("Script started");
 
-include 'config.php'; // اتصال به دیتابیس
+include 'config.php'; // اتصال به دیتابیس با PDO
 
 // گرفتن توکن از متغیر محیطی Render
 $bot_token = getenv('TELEGRAM_BOT_TOKEN');
@@ -26,45 +26,49 @@ $update = json_decode($update_json, true);
 
 if (isset($update['message'])) {
     $chat_id = $update['message']['chat']['id'];
-    $user_id = $update['message']['from']['id'];
     $username = $update['message']['from']['username'] ?? '';
     $first_name = $update['message']['from']['first_name'] ?? '';
+    $last_name = $update['message']['from']['last_name'] ?? '';
     $text = $update['message']['text'] ?? '';
 
-    error_log("Message received - Chat ID: $chat_id, User ID: $user_id, Text: $text");
+    error_log("Message received - Chat ID: $chat_id, Text: $text");
 
-    // بررسی وجود کاربر در دیتابیس
-    $check_stmt = pg_prepare($conn, "check_user", "SELECT id FROM users WHERE telegram_id = $1");
-    if ($check_stmt === false) {
-        error_log("Prepare failed (check_user): " . pg_last_error());
-        die("Prepare failed (check_user): " . pg_last_error());
-    }
-    $result = pg_execute($conn, "check_user", array($user_id));
-    if ($result === false) {
-        error_log("Execute failed (check_user): " . pg_last_error());
-        die("Execute failed (check_user): " . pg_last_error());
-    }
+    // چک کن کاربر قبلاً ثبت شده یا نه
+    $stmt = $pdo->prepare("SELECT chat_id FROM users WHERE chat_id = :chat_id");
+    $stmt->execute(['chat_id' => $chat_id]);
+    $user = $stmt->fetch();
 
-    if (pg_num_rows($result) == 0) {
-        // کاربر جدید هست، اطلاعات رو ذخیره کن
-        $insert_stmt = pg_prepare($conn, "insert_user", "INSERT INTO users (telegram_id, username, first_name, created_at) VALUES ($1, $2, $3, NOW())");
-        if ($insert_stmt === false) {
-            error_log("Prepare failed (insert_user): " . pg_last_error());
-            die("Prepare failed (insert_user): " . pg_last_error());
-        }
-        $result = pg_execute($conn, "insert_user", array($user_id, $username, $first_name));
-        if ($result === false) {
-            error_log("Execute failed (insert_user): " . pg_last_error());
-        } else {
-            $new_user_id = pg_last_oid($result); // گرفتن ID جدید
-            error_log("New user registered with ID: $new_user_id");
-            sendTelegramMessage($bot_token, $chat_id, "Welcome to Oil Drop Miner! Your Telegram ID has been registered. Use /start to begin.");
-        }
+    if (!$user) {
+        // ثبت کاربر جدید
+        $stmt = $pdo->prepare("INSERT INTO users (chat_id, username, first_name, last_name) VALUES (:chat_id, :username, :first_name, :last_name)");
+        $stmt->execute([
+            'chat_id' => $chat_id,
+            'username' => $username,
+            'first_name' => $first_name,
+            'last_name' => $last_name
+        ]);
+        error_log("New user registered with Chat ID: $chat_id");
+        sendTelegramMessage($bot_token, $chat_id, "خوش اومدی به Oil Drop Miner! اطلاعاتت ثبت شد. از /start استفاده کن.");
     } else {
-        error_log("User already registered, sending welcome message");
-        sendTelegramMessage($bot_token, $chat_id, "You are already registered with Oil Drop Miner! Use /start to see commands.");
+        // به‌روزرسانی اطلاعات اگه نام تغییر کرده
+        $stmt = $pdo->prepare("UPDATE users SET username = :username, first_name = :first_name, last_name = :last_name WHERE chat_id = :chat_id");
+        $stmt->execute([
+            'chat_id' => $chat_id,
+            'username' => $username,
+            'first_name' => $first_name,
+            'last_name' => $last_name
+        ]);
+        error_log("User updated with Chat ID: $chat_id");
+        sendTelegramMessage($bot_token, $chat_id, "تو قبلاً ثبت شدی! از /start برای دیدن دستورات استفاده کن.");
     }
-    pg_free_result($result); // آزاد کردن نتیجه
+
+    // اگه پیام /refer <chat_id> بود، رفرال ثبت کن
+    if (preg_match('/^\/refer (\d+)$/', $text, $matches)) {
+        $referred_id = $matches[1];
+        $stmt = $pdo->prepare("INSERT INTO referrals (referrer_id, referred_id) VALUES (:chat_id, :referred_id)");
+        $stmt->execute(['chat_id' => $chat_id, 'referred_id' => $referred_id]);
+        sendTelegramMessage($bot_token, $chat_id, "رفرال با موفقیت ثبت شد!");
+    }
 } else {
     error_log("No message found in Webhook data.");
 }
@@ -72,16 +76,13 @@ if (isset($update['message'])) {
 // تابع ارسال پیام به تلگرام با cURL
 function sendTelegramMessage($bot_token, $chat_id, $message) {
     $url = "https://api.telegram.org/bot" . $bot_token . "/sendMessage";
-    $data = [
-        'chat_id' => $chat_id,
-        'text' => $message
-    ];
+    $data = ['chat_id' => $chat_id, 'text' => $message];
 
     $ch = curl_init($url);
     curl_setopt($ch, CURLOPT_POST, 1);
     curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($data));
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); // غیرفعال کردن تأیید SSL (برای تست)
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); // برای تست (در محیط واقعی فعال کن)
     $response = curl_exec($ch);
     if (curl_error($ch)) {
         error_log("cURL Error: " . curl_error($ch));
@@ -92,7 +93,4 @@ function sendTelegramMessage($bot_token, $chat_id, $message) {
 
     return $response;
 }
-
-// بستن اتصال دیتابیس
-pg_close($conn);
 ?>

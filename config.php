@@ -1,23 +1,14 @@
 <?php
-// config.php برای Render با PostgreSQL
-$db_url = getenv('DATABASE_URL');
-if (!$db_url) {
-    die("Error: DATABASE_URL not set in environment variables!");
-}
+$host = getenv('DB_HOST') ?: 'postgres-render.com';
+$dbname = getenv('DB_NAME') ?: 'oildropminer_db';
+$username = getenv('DB_USERNAME') ?: 'oildropminer_db_user';
+$password = getenv('DB_PASSWORD') ?: '';
 
-$dbparts = parse_url($db_url);
-
-$hostname = $dbparts['host'];
-$username = $dbparts['user'];
-$password = $dbparts['pass'];
-$database = ltrim($dbparts['path'], '/');
-$port = $dbparts['port'];
-
-$conn_string = "host=$hostname port=$port dbname=$database user=$username password=$password";
-$conn = pg_connect($conn_string);
-
-if (!$conn) {
-    error_log("Connection failed: " . pg_last_error());
-    die("Connection failed: " . pg_last_error());
+try {
+    $pdo = new PDO("pgsql:host=$host;dbname=$dbname", $username, $password);
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    echo "اتصال به دیتابیس موفق بود!";
+} catch (PDOException $e) {
+    die("خطا در اتصال: " . $e->getMessage());
 }
 ?>
