@@ -7,8 +7,9 @@ $password = getenv('DB_PASSWORD') ?: '';
 try {
     $pdo = new PDO("pgsql:host=$host;dbname=$dbname", $username, $password);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    echo "اتصال به دیتابیس موفق بود!";
+    error_log("اتصال به دیتابیس موفق بود!");
 } catch (PDOException $e) {
+    error_log("خطا در اتصال: " . $e->getMessage());
     die("خطا در اتصال: " . $e->getMessage());
 }
 ?>
