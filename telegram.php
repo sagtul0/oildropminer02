@@ -6,6 +6,15 @@ error_log("Script started");
 
 include 'config.php'; // اتصال به دیتابیس با PDO
 
+// تست اتصال به دیتابیس
+try {
+    $pdo->query("SELECT 1");
+    error_log("دیتابیس به درستی کار می‌کند");
+} catch (PDOException $e) {
+    error_log("خطا در اتصال به دیتابیس: " . $e->getMessage());
+    die("خطا در اتصال به دیتابیس");
+}
+
 // گرفتن توکن از متغیر محیطی Render
 $bot_token = getenv('TELEGRAM_BOT_TOKEN');
 if (!$bot_token) {
