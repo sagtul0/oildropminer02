@@ -75,9 +75,11 @@ if (isset($update['message'])) {
     if ($text === '/start') {
         sendTelegramMessage($bot_token, $chat_id, "Welcome to Oil Drop Miner! Your information has been registered. Use /help to see commands.");
     } elseif ($text === '/help') {
-        sendTelegramMessage($bot_token, $chat_id, "Commands:\n/start - Start\n/help - Help\n/refer <chat_id> - Invite a friend\n/oilcards - View Oil Cards: https://oildropminer02-eay2.onrender.com/oil_cards.php");
+        sendTelegramMessage($bot_token, $chat_id, "Commands:\n/start - Start\n/help - Help\n/refer <chat_id> - Invite a friend\n/oilcards - View Oil Cards: https://oildropminer02-eay2.onrender.com/oil_cards.php\n/chatid - Get your Chat ID for website login");
     } elseif ($text === '/oilcards') {
         sendTelegramMessage($bot_token, $chat_id, "View and purchase Oil Cards here: https://oildropminer02-eay2.onrender.com/oil_cards.php");
+    } elseif ($text === '/chatid') {
+        sendTelegramMessage($bot_token, $chat_id, "Your Chat ID is: $chat_id\nUse this to log in to the website: https://oildropminer02-eay2.onrender.com/login.php");
     } elseif (preg_match('/^\/refer (\d+)$/', $text, $matches)) {
         $referred_id = $matches[1];
         $stmt = $pdo->prepare("INSERT INTO referrals (referrer_id, referred_id, created_at) VALUES (:chat_id, :referred_id, NOW())");
@@ -108,4 +110,3 @@ function sendTelegramMessage($bot_token, $chat_id, $message) {
 
     return $response;
 }
-?>

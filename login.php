@@ -1,63 +1,53 @@
 <?php
-include 'config.php';
 session_start();
+include 'config.php';
 
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $username = filter_var($_POST['username'], FILTER_SANITIZE_STRING);
-    $password = $_POST['password'];
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $chat_id = $_POST['chat_id'];
+    $stmt = $pdo->prepare("SELECT * FROM users WHERE chat_id = :chat_id");
+    $stmt->execute(['chat_id' => $chat_id]);
+    $user = $stmt->fetch();
 
-    $stmt = $conn->prepare("SELECT id, password, telegram_id FROM users WHERE username = ?");
-    $stmt->bind_param("s", $username);
-    $stmt->execute();
-    $result = $stmt->get_result();
-
-    if ($result->num_rows > 0) {
-        $user = $result->fetch_assoc();
-        if (password_verify($password, $user['password'])) {
-            if (!empty($user['telegram_id'])) {
-                $_SESSION['user_id'] = $user['id'];
-                header("Location: index.php");
-                exit();
-            } else {
-                $error = "Please verify your Telegram ID before logging in.";
-            }
-        } else {
-            $error = "Invalid username or password.";
-        }
+    if ($user) {
+        $_SESSION['chat_id'] = $chat_id;
+        header("Location: oil_cards.php");
+        exit;
     } else {
-        $error = "User not found.";
+        $error = "User not found! Please register in the Telegram bot first with /start.";
     }
-    $stmt->close();
 }
 ?>
-
-<!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>Login - Oil Drop Miner</title>
-    <!-- لینک‌های CSS -->
+    <title>Login to Oil Drop Miner</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-    <link rel="stylesheet" href="assets/css/style.css">
+    <style>
+        body {
+            background: url('assets/images/backgrounds/auth_background_simple.jpg') no-repeat center center fixed;
+            background-size: cover;
+            color: #ffffff;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+        }
+        .container {
+            margin-top: 80px;
+            padding: 20px;
+        }
+        .error { color: red; }
+    </style>
 </head>
 <body>
-    <div class="container mt-5">
-        <h2 class="text-center text-warning mb-4">Login</h2>
-        <?php if (isset($error)): ?>
-            <div class="alert alert-danger"><?php echo $error; ?></div>
-        <?php endif; ?>
-        <form method="POST" class="mx-auto" style="max-width: 400px;">
-            <div class="mb-3">
-                <label for="username" class="form-label text-white">Username</label>
-                <input type="text" class="form-control" id="username" name="username" required>
-            </div>
-            <div class="mb-3">
-                <label for="password" class="form-label text-white">Password</label>
-                <input type="password" class="form-control" id="password" name="password" required>
-            </div>
-            <button type="submit" class="btn btn-warning w-100">Login</button>
+    <div class="container">
+        <h1 class="text-center text-warning mb-4">Login to Oil Drop Miner</h1>
+        <?php if (isset($error)) echo "<p class='error text-center'>$error</p>"; ?>
+        <form method="POST" class="text-center">
+            <label>Enter your Telegram Chat ID:</label><br>
+            <input type="text" name="chat_id" class="form-control w-50 mx-auto" required><br>
+            <button type="submit" class="btn btn-warning mt-3">Login</button>
         </form>
+        <p class="text-center mt-3">Don't know your Chat ID? Use /chatid in the Telegram bot to get it.</p>
     </div>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
