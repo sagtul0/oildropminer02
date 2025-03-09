@@ -1,5 +1,5 @@
 <?php
-// telegram.php (به‌روز شده برای بات تلگرام بین‌المللی)
+// telegram.php (به‌روز شده برای بات تلگرام بین‌المللی با لینک به سایت)
 ini_set('display_errors', 1);
 ini_set('log_errors', 1);
 error_log("Script started at " . date('Y-m-d H:i:s'));
@@ -75,7 +75,9 @@ if (isset($update['message'])) {
     if ($text === '/start') {
         sendTelegramMessage($bot_token, $chat_id, "Welcome to Oil Drop Miner! Your information has been registered. Use /help to see commands.");
     } elseif ($text === '/help') {
-        sendTelegramMessage($bot_token, $chat_id, "Commands:\n/start - Start\n/help - Help\n/refer <chat_id> - Invite a friend");
+        sendTelegramMessage($bot_token, $chat_id, "Commands:\n/start - Start\n/help - Help\n/refer <chat_id> - Invite a friend\n/oilcards - View Oil Cards: https://oildropminer02-eay2.onrender.com/oil_cards.php");
+    } elseif ($text === '/oilcards') {
+        sendTelegramMessage($bot_token, $chat_id, "View and purchase Oil Cards here: https://oildropminer02-eay2.onrender.com/oil_cards.php");
     } elseif (preg_match('/^\/refer (\d+)$/', $text, $matches)) {
         $referred_id = $matches[1];
         $stmt = $pdo->prepare("INSERT INTO referrals (referrer_id, referred_id, created_at) VALUES (:chat_id, :referred_id, NOW())");
@@ -107,25 +109,3 @@ function sendTelegramMessage($bot_token, $chat_id, $message) {
     return $response;
 }
 ?>
-
----
-
-### **تغییرات اعمال‌شده**
-- **پیام‌ها به انگلیسی**:
-  - "خوش اومدی به Oil Drop Miner! اطلاعاتت ثبت شد. از /start استفاده کن." → "Welcome to Oil Drop Miner! Your information has been registered. Use /start to begin."
-  - "تو قبلاً ثبت شدی! از /start برای دیدن دستورات استفاده کن." → "You are already registered! Use /start to see commands."
-  - "دستورات:\n/start - شروع\n/help - راهنما\n/refer <chat_id> - دعوت دوست" → "Commands:\n/start - Start\n/help - Help\n/refer <chat_id> - Invite a friend"
-  - "رفرال با موفقیت ثبت شد!" → "Referral successfully registered!"
-
-- **لاگ‌ها**:
-  - متن لاگ‌ها هم به انگلیسی موند (چون برای دیباگ حرفه‌ایه)، ولی اگه بخوای می‌تونیم این‌ها رو هم تغییر بدیم.
-
----
-
-### **آپلود و دیپلوی**
-1. **آپلود کد**:
-   ```bash
-   cd C:\xampp\htdocs\proje
-   git add telegram.php
-   git commit -m "به‌روزرسانی پیام‌ها به انگلیسی برای بات بین‌المللی"
-   git push origin main
