@@ -14,11 +14,13 @@ RewriteRule ^ index.php [L]
     Header set Cache-Control "max-age=31536000, public"
 </FilesMatch>
 
-# تنظیم دسترسی برای سرور
-<IfModule mod_headers.c>
-    Header set Access-Control-Allow-Origin "*"
-</IfModule>
-<Files "config/config_telegram.php">
-    Order allow,deny
+# غیرفعال کردن Access-Control-Allow-Origin برای امنیت بیشتر (فقط اگه لازم نیست)
+# <IfModule mod_headers.c>
+#     Header set Access-Control-Allow-Origin "*"
+# </IfModule>
+
+# محدود کردن دسترسی به فایل‌های حساس
+<FilesMatch "^(config_telegram\.php|config\.php|config-api\.php)$">
+    Order Allow,Deny
     Deny from all
-</Files>
+</FilesMatch>

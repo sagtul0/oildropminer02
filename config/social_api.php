@@ -1,8 +1,8 @@
 <?php
 // config/social_api.php
 
-// توکن‌ها و کلیدهای API (این‌ها رو با مقادیر واقعی خودت جایگزین کن)
-define('TELEGRAM_BOT_TOKEN', 'YOUR_TELEGRAM_BOT_TOKEN');
+// توکن‌ها و کلیدهای API
+require_once 'config_telegram.php'; // برای TELEGRAM_BOT_TOKEN
 define('TELEGRAM_CHAT_ID', 'YOUR_TELEGRAM_CHANNEL_CHAT_ID'); // ID کانال تلگرام
 define('X_API_KEY', 'YOUR_X_API_KEY'); // کلید API برای X (Twitter)
 define('YOUTUBE_API_KEY', 'YOUR_YOUTUBE_API_KEY'); // کلید API برای YouTube
@@ -31,14 +31,11 @@ function checkTelegramMembership($user_id) {
 
 // تابع بررسی فالو در X (Twitter)
 function checkXFollow($user_id) {
-    // اینجا باید با API X (Twitter) کار کنی
-    // نیاز به توکن و کلید API X داری
-    // مثال ساده (نیاز به پیاده‌سازی دقیق با API X):
     $headers = [
         'Authorization: Bearer ' . X_API_KEY,
         'Content-Type: application/json'
     ];
-    $url = "https://api.twitter.com/2/users/$user_id/following"; // یا endpoint مناسب X
+    $url = "https://api.twitter.com/2/users/$user_id/following";
     $ch = curl_init($url);
     curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -58,8 +55,6 @@ function checkXFollow($user_id) {
 
 // تابع بررسی اشتراک در یوتیوب
 function checkYouTubeSubscription($user_id) {
-    // اینجا باید با API YouTube کار کنی
-    // نیاز به توکن و کلید API YouTube داری
     $url = "https://www.googleapis.com/youtube/v3/subscriptions?part=snippet&forChannelId=YOUR_CHANNEL_ID&key=" . YOUTUBE_API_KEY;
     $ch = curl_init($url);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -71,7 +66,6 @@ function checkYouTubeSubscription($user_id) {
     $data = json_decode($response, true);
     curl_close($ch);
     if (isset($data['items']) && !empty($data['items'])) {
-        // بررسی اینکه کاربر اشتراک داره یا نه (نیاز به منطق دقیق‌تر)
         return true;
     }
     error_log("YouTube API error for user ID: $user_id - " . print_r($data, true));
@@ -80,8 +74,6 @@ function checkYouTubeSubscription($user_id) {
 
 // تابع بررسی فالو در اینستاگرام
 function checkInstagramFollow($user_id) {
-    // اینجا باید با API Instagram کار کنی
-    // نیاز به توکن دسترسی اینستاگرام داری
     $url = "https://graph.instagram.com/me/accounts?access_token=" . INSTAGRAM_ACCESS_TOKEN;
     $ch = curl_init($url);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -93,9 +85,9 @@ function checkInstagramFollow($user_id) {
     $data = json_decode($response, true);
     curl_close($ch);
     if (isset($data['data']) && !empty($data['data'])) {
-        // بررسی اینکه کاربر فالو کرده یا نه (نیاز به منطق دقیق‌تر)
         return true;
     }
     error_log("Instagram API error for user ID: $user_id - " . print_r($data, true));
     return false;
 }
+?>

@@ -7,6 +7,22 @@ include 'config.php';
 
 $user_logged_in = isset($_SESSION["user_id"]);
 
+// Check if user is logged in and blocked
+if ($user_logged_in) {
+    $user_id = $_SESSION['user_id'] ?? $_SESSION['chat_id'];
+    $stmt = $conn->prepare("SELECT is_blocked FROM users WHERE id = ? OR chat_id = ?");
+    $stmt->bind_param("ii", $user_id, $user_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $user = $result->fetch_assoc();
+    if ($user['is_blocked']) {
+        session_destroy();
+        header("Location: login_web.php?blocked=1");
+        exit;
+    }
+    $stmt->close();
+}
+
 header('X-Frame-Options: SAMEORIGIN');
 
 if (empty($_SESSION['csrf_token'])) {

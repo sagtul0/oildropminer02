@@ -1,13 +1,9 @@
 <?php
-include 'config.php';
+include 'header.php'; // Includes database connection as $conn and session start
 
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
-// بررسی دسترسی ادمین (فرض می‌کنیم فقط تو به‌عنوان ادمین می‌تونی این کار رو کنی)
+// بررسی دسترسی ادمین
 if (!isset($_SESSION['admin']) || $_SESSION['admin'] !== true) {
-    header('Location: login.php');
+    header('Location: login_web.php');
     exit();
 }
 
@@ -24,6 +20,19 @@ if (isset($_GET['id']) && is_numeric($_GET['id'])) {
     if ($promo && $promo['status'] === 'pending') {
         $user_id = $promo['user_id'];
 
+        // Check if user is blocked
+        $stmt = $conn->prepare("SELECT is_blocked FROM users WHERE id = ? OR chat_id = ?");
+        $stmt->bind_param("ii", $user_id, $user_id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $user = $result->fetch_assoc();
+        if ($user['is_blocked']) {
+            echo "<div class='alert alert-danger text-center mt-3'>This user account has been blocked.</div>";
+            include 'footer.php';
+            exit;
+        }
+        $stmt->close();
+
         // شروع تراکنش
         $conn->begin_transaction();
         try {
@@ -35,8 +44,8 @@ if (isset($_GET['id']) && is_numeric($_GET['id'])) {
             }
 
             // گرفتن مقدار فعلی oil_drops کاربر
-            $user_stmt = $conn->prepare("SELECT oil_drops FROM users WHERE id = ?");
-            $user_stmt->bind_param("i", $user_id);
+            $user_stmt = $conn->prepare("SELECT oil_drops FROM users WHERE id = ? OR chat_id = ?");
+            $user_stmt->bind_param("ii", $user_id, $user_id);
             $user_stmt->execute();
             $user_result = $user_stmt->get_result();
             $user = $user_result->fetch_assoc();
@@ -46,8 +55,8 @@ if (isset($_GET['id']) && is_numeric($_GET['id'])) {
             $new_oil = $current_oil + 10000;
 
             // به‌روزرسانی oil_drops کاربر
-            $update_user = $conn->prepare("UPDATE users SET oil_drops = ? WHERE id = ?");
-            $update_user->bind_param("ii", $new_oil, $user_id);
+            $update_user = $conn->prepare("UPDATE users SET oil_drops = ? WHERE id = ? OR chat_id = ?");
+            $update_user->bind_param("iii", $new_oil, $user_id, $user_id);
             if (!$update_user->execute()) {
                 throw new Exception("Error updating user oil drops: " . $update_user->error);
             }

@@ -1,10 +1,6 @@
 <?php
-include 'config.php';
+include 'header.php'; // Includes database connection as $conn and session start
 include 'config/config-api.php';
-
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
 
 header('Content-Type: application/json; charset=utf-8');
 
@@ -14,32 +10,52 @@ if (empty($_SESSION['csrf_token'])) {
 }
 
 // بررسی لاگین
-if (!isset($_SESSION['user_id'])) {
+if (!isset($_SESSION['user_id']) && !isset($_SESSION['chat_id'])) {
+    error_log("User not logged in for deposit request. Session ID: " . session_id());
     echo json_encode([
         "success" => false,
         "message" => "User not logged in."
     ]);
-    exit();
+    exit;
 }
+
+$user_id = $_SESSION['user_id'] ?? $_SESSION['chat_id'];
+
+// Check if user is blocked
+$stmt = $conn->prepare("SELECT is_blocked FROM users WHERE id = ? OR chat_id = ?");
+$stmt->bind_param("ii", $user_id, $user_id);
+$stmt->execute();
+$result = $stmt->get_result();
+$user = $result->fetch_assoc();
+if ($user['is_blocked']) {
+    error_log("Blocked user attempted to deposit. User ID: $user_id, Session ID: " . session_id());
+    echo json_encode([
+        "success" => false,
+        "message" => "Your account has been blocked."
+    ]);
+    exit;
+}
+$stmt->close();
 
 // بررسی توکن CSRF
 if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
+    error_log("CSRF token mismatch for user $user_id, Session ID: " . session_id());
     echo json_encode([
         "success" => false,
         "message" => "CSRF token mismatch."
     ]);
-    exit();
+    exit;
 }
 
-$user_id = $_SESSION['user_id'];
 $amount = floatval($_POST['amount'] ?? 0);
 
 if ($amount <= 0) {
+    error_log("Invalid deposit amount ($amount) for user $user_id");
     echo json_encode([
         "success" => false,
         "message" => "Invalid amount."
     ]);
-    exit();
+    exit;
 }
 
 // آدرس والت پروژه
@@ -63,22 +79,24 @@ curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); // برای تست لوکال،
 
 $response = curl_exec($ch);
 if (curl_error($ch)) {
+    error_log("API error for user $user_id: " . curl_error($ch));
     echo json_encode([
         "success" => false,
-        "message" => "API error: " . curl_error($ch)
+        "message" => "Failed to connect to TON API. Please try again later."
     ]);
     curl_close($ch);
-    exit();
+    exit;
 }
 curl_close($ch);
 
 $transactions = json_decode($response, true);
 if (json_last_error() !== JSON_ERROR_NONE || !isset($transactions['result'])) {
+    error_log("Failed to decode TON API response for user $user_id: " . json_last_error_msg());
     echo json_encode([
         "success" => false,
-        "message" => "Failed to decode TON API response."
+        "message" => "Failed to process transaction data. Please try again."
     ]);
-    exit();
+    exit;
 }
 
 // جستجو برای تراکنش‌های مرتبط با کاربر
@@ -98,36 +116,39 @@ foreach ($transactions['result'] as $tx) {
 }
 
 if (!$found_transaction) {
+    error_log("No matching transaction found for user $user_id with amount $amount");
     echo json_encode([
         "success" => false,
         "message" => "No matching transaction found. Please send $amount TON to $project_wallet and try again."
     ]);
-    exit();
+    exit;
 }
 
 // گرفتن اطلاعات کاربر
-$stmt = $conn->prepare("SELECT balance FROM users WHERE id = ?");
-$stmt->bind_param("i", $user_id);
+$stmt = $conn->prepare("SELECT balance FROM users WHERE id = ? OR chat_id = ?");
+$stmt->bind_param("ii", $user_id, $user_id);
 $stmt->execute();
 $result = $stmt->get_result();
 $user = $result->fetch_assoc();
 
 if (!$user) {
+    error_log("User not found for deposit. User ID: $user_id");
     echo json_encode([
         "success" => false,
         "message" => "User not found."
     ]);
-    exit();
+    exit;
 }
 
 $current_balance = (float)$user['balance'];
 $new_balance = $current_balance + $amount;
 
 // به‌روزرسانی موجودی در دیتابیس
-$update = $conn->prepare("UPDATE users SET balance = ? WHERE id = ?");
-$update->bind_param("di", $new_balance, $user_id);
+$update = $conn->prepare("UPDATE users SET balance = ? WHERE id = ? OR chat_id = ?");
+$update->bind_param("dii", $new_balance, $user_id, $user_id);
 
 if ($update->execute()) {
+    error_log("Successful deposit of $amount TON for user $user_id. New balance: $new_balance");
     echo json_encode([
         "success" => true,
         "message" => "Deposited $amount TON successfully!",
@@ -135,8 +156,10 @@ if ($update->execute()) {
         "wallet_address" => $project_wallet
     ]);
 } else {
+    error_log("Database error updating balance for user $user_id: " . $update->error);
     echo json_encode([
         "success" => false,
         "message" => "Database error: " . $update->error
     ]);
 }
+?>

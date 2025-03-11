@@ -1,7 +1,10 @@
 <?php
-include 'config.php';
+include 'header.php'; // Includes database connection as $conn
 
-$stmt = $conn->prepare("SELECT uc.id, uc.user_id, uc.card_name FROM user_cards uc WHERE TIMESTAMPDIFF(HOUR, uc.unlocked_at, NOW()) >= 8 AND uc.expires_at > NOW()");
+$stmt = $conn->prepare("SELECT uc.id, uc.user_id, uc.card_name 
+                        FROM user_cards uc 
+                        WHERE EXTRACT(EPOCH FROM (NOW() - uc.unlocked_at))/3600 >= 8 
+                        AND uc.expires_at > NOW()");
 $stmt->execute();
 $result = $stmt->get_result();
 
@@ -17,6 +20,17 @@ while ($card = $result->fetch_assoc()) {
     $user_id = $card['user_id'];
     $card_name = $card['card_name'];
     $reward = $card_rewards[$card_name] ?? 0; // پاداش کارت از آرایه
+
+    // Check if user is blocked
+    $stmt_block = $conn->prepare("SELECT is_blocked FROM users WHERE id = ? OR chat_id = ?");
+    $stmt_block->bind_param("ii", $user_id, $user_id);
+    $stmt_block->execute();
+    $result_block = $stmt_block->get_result();
+    $user = $result_block->fetch_assoc();
+    if ($user['is_blocked']) {
+        continue; // Skip this user if blocked
+    }
+    $stmt_block->close();
 
     if ($reward > 0) {
         // به‌روزرسانی oil_drops کاربر
@@ -35,3 +49,4 @@ while ($card = $result->fetch_assoc()) {
 
 $stmt->close();
 $conn->close();
+?>
