@@ -1,2 +1,3 @@
 #!/bin/bash
-php -S 0.0.0.0:${PORT:-8080}
+echo "Using PORT: $PORT"
+php -S 0.0.0.0:$PORT
