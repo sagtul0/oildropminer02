@@ -1,30 +1,47 @@
 <?php
+ini_set('display_errors', 1); // برای نمایش خطاها در توسعه
+error_reporting(E_ALL);
+
 include 'config.php';
 session_start();
 
+// دریافت اطلاعات از Telegram WebApp
 if (isset($_GET['chat_id'])) {
-    $_SESSION['chat_id'] = $_GET['chat_id']; // از Telegram Web App دریافت می‌شه
+    $_SESSION['chat_id'] = $_GET['chat_id'];
+} elseif (isset($_SERVER['HTTP_X_TELEGRAM_INIT_DATA'])) {
+    // استفاده از initData برای تأیید هویت (در آینده می‌تونی امضای داده‌ها رو چک کنی)
+    $initData = $_SERVER['HTTP_X_TELEGRAM_INIT_DATA'];
+    $data = [];
+    parse_str($initData, $data);
+    if (isset($data['user']['id'])) {
+        $_SESSION['chat_id'] = $data['user']['id'];
+    }
 }
 
 if (!isset($_SESSION['chat_id'])) {
-    die("Unauthorized access.");
+    die("Unauthorized access. Please open via Telegram WebApp.");
 }
 
 $chat_id = $_SESSION['chat_id'];
-$stmt = $pdo->prepare("SELECT oil_drops, balance, invite_reward FROM users WHERE chat_id = :chat_id");
-$stmt->execute(['chat_id' => $chat_id]);
-$user = $stmt->fetch();
-if (!$user) {
-    die("User not found.");
+
+try {
+    $stmt = $pdo->prepare("SELECT oil_drops, balance, invite_reward FROM users WHERE chat_id = :chat_id");
+    $stmt->execute(['chat_id' => $chat_id]);
+    $user = $stmt->fetch();
+    if (!$user) {
+        die("User not found. Please start the bot with /start.");
+    }
+
+    $oil_drops = (int)$user['oil_drops'];
+    $balance = (float)$user['balance'];
+    $referrals = (int)$user['invite_reward'];
+
+    $active_cards_stmt = $pdo->prepare("SELECT card_id, card_type, reward FROM user_cards WHERE chat_id = :chat_id");
+    $active_cards_stmt->execute(['chat_id' => $chat_id]);
+    $active_cards = $active_cards_stmt->fetchAll();
+} catch (PDOException $e) {
+    die("Database error: " . $e->getMessage());
 }
-
-$oil_drops = (int)$user['oil_drops'];
-$balance = (float)$user['balance'];
-$referrals = (int)$user['invite_reward'];
-
-$active_cards_stmt = $pdo->prepare("SELECT card_id, card_type, reward FROM user_cards WHERE user_id = :chat_id");
-$active_cards_stmt->execute(['chat_id' => $chat_id]);
-$active_cards = $active_cards_stmt->fetchAll();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -34,12 +51,42 @@ $active_cards = $active_cards_stmt->fetchAll();
     <title>Oil Drop Miner Web App</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <style>
-        body { background: url('assets/images/backgrounds/auth_background_simple.jpg') no-repeat center center fixed; background-size: cover; color: #fff; font-family: Arial; margin: 0; padding: 0; min-height: 100vh; }
-        .navbar { height: 60px; background-color: #1a1a1a; position: fixed; top: 0; width: 100%; z-index: 1000; }
-        .navbar-brand { color: #ffcc00; font-weight: bold; }
-        .container { margin-top: 80px; padding: 20px; }
-        .card { background: rgba(30, 30, 30, 0.9); border: 2px solid #D4A017; border-radius: 15px; padding: 15px; margin-bottom: 20px; }
-        .disabled-btn { opacity: 0.5; cursor: not-allowed; }
+        body {
+            background: url('assets/images/backgrounds/auth_background_simple.jpg') no-repeat center center fixed;
+            background-size: cover;
+            color: #fff;
+            font-family: Arial;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+        }
+        .navbar {
+            height: 60px;
+            background-color: #1a1a1a;
+            position: fixed;
+            top: 0;
+            width: 100%;
+            z-index: 1000;
+        }
+        .navbar-brand {
+            color: #ffcc00;
+            font-weight: bold;
+        }
+        .container {
+            margin-top: 80px;
+            padding: 20px;
+        }
+        .card {
+            background: rgba(30, 30, 30, 0.9);
+            border: 2px solid #D4A017;
+            border-radius: 15px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        .disabled-btn {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
     </style>
 </head>
 <body>
@@ -78,9 +125,12 @@ $active_cards = $active_cards_stmt->fetchAll();
         const tg = window.Telegram.WebApp;
         tg.ready();
         tg.expand(); // تمام صفحه کن
-        const chatId = tg.initDataUnsafe?.user?.id;
-        if (chatId) {
-            window.location.href = `?chat_id=${chatId}`;
+
+        // چک کردن لود شدن تلگرام
+        if (!tg.initDataUnsafe) {
+            console.error("Telegram WebApp init data not available.");
+        } else {
+            console.log("Telegram WebApp initialized:", tg.initDataUnsafe);
         }
     </script>
 </body>
