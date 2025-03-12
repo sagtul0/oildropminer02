@@ -1,0 +1,1 @@
+touch favicon.ico
