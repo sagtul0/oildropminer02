@@ -5,21 +5,20 @@ error_reporting(E_ALL);
 include 'config.php';
 session_start();
 
-// دریافت اطلاعات از Telegram WebApp
-if (isset($_GET['chat_id'])) {
-    $_SESSION['chat_id'] = $_GET['chat_id'];
-} elseif (isset($_SERVER['HTTP_X_TELEGRAM_INIT_DATA'])) {
-    // استفاده از initData برای تأیید هویت (در آینده می‌تونی امضای داده‌ها رو چک کنی)
-    $initData = $_SERVER['HTTP_X_TELEGRAM_INIT_DATA'];
+// دریافت initData از تلگرام
+$initData = $_SERVER['HTTP_X_TELEGRAM_INIT_DATA'] ?? '';
+if ($initData) {
     $data = [];
     parse_str($initData, $data);
     if (isset($data['user']['id'])) {
         $_SESSION['chat_id'] = $data['user']['id'];
     }
+} elseif (isset($_GET['chat_id'])) {
+    $_SESSION['chat_id'] = $_GET['chat_id']; // فقط برای تست اولیه
 }
 
 if (!isset($_SESSION['chat_id'])) {
-    die("Unauthorized access. Please open via Telegram WebApp.");
+    die("Unauthorized access. Please open via Telegram WebApp. InitData: " . htmlspecialchars($initData));
 }
 
 $chat_id = $_SESSION['chat_id'];
@@ -29,7 +28,7 @@ try {
     $stmt->execute(['chat_id' => $chat_id]);
     $user = $stmt->fetch();
     if (!$user) {
-        die("User not found. Please start the bot with /start.");
+        die("User not found. Please start the bot with /start. Chat ID: " . $chat_id);
     }
 
     $oil_drops = (int)$user['oil_drops'];
@@ -59,6 +58,7 @@ try {
             margin: 0;
             padding: 0;
             min-height: 100vh;
+            background-color: #000; /* پس‌زمینه پیش‌فرض در صورت لود نشدن تصویر */
         }
         .navbar {
             height: 60px;
@@ -124,13 +124,13 @@ try {
     <script>
         const tg = window.Telegram.WebApp;
         tg.ready();
-        tg.expand(); // تمام صفحه کن
+        tg.expand();
 
-        // چک کردن لود شدن تلگرام
-        if (!tg.initDataUnsafe) {
-            console.error("Telegram WebApp init data not available.");
+        // دیباگ اطلاعات تلگرام
+        if (tg.initDataUnsafe) {
+            console.log("Telegram Init Data:", tg.initDataUnsafe);
         } else {
-            console.log("Telegram WebApp initialized:", tg.initDataUnsafe);
+            console.error("No Telegram Init Data available.");
         }
     </script>
 </body>
