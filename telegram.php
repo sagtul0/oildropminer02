@@ -5,24 +5,29 @@ error_log("Script started at " . date('Y-m-d H:i:s'));
 
 include 'config.php';
 
+if (!$conn) {
+    error_log("Connection is null after including config.php at " . date('Y-m-d H:i:s'));
+    die("Error: Database connection not established.");
+}
+
 try {
-    $pdo->query("SELECT 1");
+    $conn->query("SELECT 1");
     error_log("Database is working correctly at " . date('Y-m-d H:i:s'));
 } catch (PDOException $e) {
-    error_log("Error connecting to database: " . $e->getMessage());
+    error_log("Error connecting to database: " . $e->getMessage() . " at " . date('Y-m-d H:i:s'));
     die("Error connecting to database.");
 }
 
 $bot_token = getenv('TELEGRAM_BOT_TOKEN');
 if (!$bot_token) {
-    error_log("TELEGRAM_BOT_TOKEN is not set.");
+    error_log("TELEGRAM_BOT_TOKEN is not set at " . date('Y-m-d H:i:s'));
     die("Error: TELEGRAM_BOT_TOKEN not found.");
 }
 error_log("Bot token retrieved: $bot_token");
 
 $update_json = file_get_contents('php://input');
 if ($update_json === false) {
-    error_log("Error reading php://input: " . (error_get_last()['message'] ?? 'Unknown error'));
+    error_log("Error reading php://input: " . (error_get_last()['message'] ?? 'Unknown error') . " at " . date('Y-m-d H:i:s'));
     die("Error: Cannot read Webhook data.");
 }
 error_log("Webhook data received: $update_json");
@@ -38,18 +43,18 @@ if (isset($update['message'])) {
 
     error_log("Message received - Chat ID: $chat_id, Text: $text");
 
-    $stmt = $pdo->prepare("SELECT chat_id, ton_address FROM users WHERE chat_id = :chat_id");
+    $stmt = $conn->prepare("SELECT chat_id, ton_address FROM users WHERE chat_id = :chat_id");
     $stmt->execute(['chat_id' => $chat_id]);
     $user = $stmt->fetch();
 
     if (!$user) {
-        $stmt = $pdo->prepare("INSERT INTO users (chat_id, username, first_name, last_name, created_at, oil_drops, balance, invite_reward) VALUES (:chat_id, :username, :first_name, :last_name, NOW(), 0, 0.0, 0)");
+        $stmt = $conn->prepare("INSERT INTO users (chat_id, username, first_name, last_name, created_at, oil_drops, balance, invite_reward) VALUES (:chat_id, :username, :first_name, :last_name, NOW(), 0, 0.0, 0)");
         $stmt->execute(['chat_id' => $chat_id, 'username' => $username, 'first_name' => $first_name, 'last_name' => $last_name]);
         error_log("New user registered with Chat ID: $chat_id");
         sendTelegramMessage($bot_token, $chat_id, "Welcome to Oil Drop Miner! Set your TON address with /setaddress and start with /openapp.");
     }
 
-    $stmt = $pdo->prepare("SELECT oil_drops, balance, invite_reward, ton_address FROM users WHERE chat_id = :chat_id");
+    $stmt = $conn->prepare("SELECT oil_drops, balance, invite_reward, ton_address FROM users WHERE chat_id = :chat_id");
     $stmt->execute(['chat_id' => $chat_id]);
     $user = $stmt->fetch();
     $oil_drops = (int)$user['oil_drops'];
@@ -71,7 +76,7 @@ if (isset($update['message'])) {
         sendTelegramMessageWithKeyboard($bot_token, $chat_id, "Open the Oil Drop Miner app:", $keyboard);
     } elseif (preg_match('/^\/setaddress (.+)$/', $text, $matches)) {
         $new_address = $matches[1];
-        $stmt = $pdo->prepare("UPDATE users SET ton_address = :ton_address WHERE chat_id = :chat_id");
+        $stmt = $conn->prepare("UPDATE users SET ton_address = :ton_address WHERE chat_id = :chat_id");
         try {
             $stmt->execute(['ton_address' => $new_address, 'chat_id' => $chat_id]);
             sendTelegramMessage($bot_token, $chat_id, "Your TON address has been set to: $new_address");
@@ -87,9 +92,9 @@ if (isset($update['message'])) {
             $cost = $oil_cards[$card_id]['cost'];
             if ($oil_drops >= $cost) {
                 $new_oil = $oil_drops - $cost;
-                $stmt = $pdo->prepare("UPDATE users SET oil_drops = :new_oil WHERE chat_id = :chat_id");
+                $stmt = $conn->prepare("UPDATE users SET oil_drops = :new_oil WHERE chat_id = :chat_id");
                 $stmt->execute(['new_oil' => $new_oil, 'chat_id' => $chat_id]);
-                $stmt = $pdo->prepare("INSERT INTO user_cards (user_id, card_id, card_type, reward, last_reward_at) VALUES (:chat_id, :card_id, 'oil', :reward, NOW())");
+                $stmt = $conn->prepare("INSERT INTO user_cards (user_id, card_id, card_type, reward, last_reward_at) VALUES (:chat_id, :card_id, 'oil', :reward, NOW())");
                 $stmt->execute(['chat_id' => $chat_id, 'card_id' => $card_id, 'reward' => $oil_cards[$card_id]['reward']]);
                 sendTelegramMessage($bot_token, $chat_id, "Card $card_id purchased! Reward: " . $oil_cards[$card_id]['reward'] . " Oil Drops/8h");
             } else {
@@ -100,7 +105,7 @@ if (isset($update['message'])) {
         }
     } elseif (preg_match('/^\/refer (\d+)$/', $text, $matches)) {
         $referred_id = $matches[1];
-        $stmt = $pdo->prepare("INSERT INTO referrals (referrer_id, referred_id, created_at) VALUES (:chat_id, :referred_id, NOW())");
+        $stmt = $conn->prepare("INSERT INTO referrals (referrer_id, referred_id, created_at) VALUES (:chat_id, :referred_id, NOW())");
         $stmt->execute(['chat_id' => $chat_id, 'referred_id' => $referred_id]);
         sendTelegramMessage($bot_token, $chat_id, "Referral registered!");
     }
