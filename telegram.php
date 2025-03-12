@@ -43,7 +43,7 @@ if (isset($update['message'])) {
 
     error_log("Message received - Chat ID: $chat_id, Text: $text");
 
-    $stmt = $conn->prepare("SELECT chat_id, ton_address FROM users WHERE chat_id = :chat_id");
+    $stmt = $conn->prepare("SELECT chat_id, ton_address, oil_drops, balance, invite_reward FROM users WHERE chat_id = :chat_id");
     $stmt->execute(['chat_id' => $chat_id]);
     $user = $stmt->fetch();
 
@@ -64,14 +64,18 @@ if (isset($update['message'])) {
 
     if ($text === '/start') {
         $keyboard = [
-            ['text' => 'Open App 📱', 'web_app' => ['url' => 'https://oildropminer02-eay2.onrender.com/webapp.php']]
+            [
+                ['text' => 'Open App 📱', 'web_app' => ['url' => 'https://oildropminer02-eay2.onrender.com/webapp.php']]
+            ]
         ];
         sendTelegramMessageWithKeyboard($bot_token, $chat_id, "Welcome! You have $oil_drops Oil Drops and $balance TON. Click below to open the app.", $keyboard);
     } elseif ($text === '/help') {
         sendTelegramMessage($bot_token, $chat_id, "Commands:\n/start - Start\n/help - Help\n/openapp - Open the app\n/setaddress <address> - Set TON address\n/myaddress - View TON address\n/buycard <card_id> - Buy a card\n/refer <chat_id> - Invite a friend");
     } elseif ($text === '/openapp') {
         $keyboard = [
-            ['text' => 'Open App 📱', 'web_app' => ['url' => 'https://oildropminer02-eay2.onrender.com/webapp.php']]
+            [
+                ['text' => 'Open App 📱', 'web_app' => ['url' => 'https://oildropminer02-eay2.onrender.com/webapp.php']]
+            ]
         ];
         sendTelegramMessageWithKeyboard($bot_token, $chat_id, "Open the Oil Drop Miner app:", $keyboard);
     } elseif (preg_match('/^\/setaddress (.+)$/', $text, $matches)) {
@@ -94,7 +98,7 @@ if (isset($update['message'])) {
                 $new_oil = $oil_drops - $cost;
                 $stmt = $conn->prepare("UPDATE users SET oil_drops = :new_oil WHERE chat_id = :chat_id");
                 $stmt->execute(['new_oil' => $new_oil, 'chat_id' => $chat_id]);
-                $stmt = $conn->prepare("INSERT INTO user_cards (user_id, card_id, card_type, reward, last_reward_at) VALUES (:chat_id, :card_id, 'oil', :reward, NOW())");
+                $stmt = $conn->prepare("INSERT INTO user_cards (chat_id, card_id, card_type, reward, last_reward_at) VALUES (:chat_id, :card_id, 'oil', :reward, NOW())");
                 $stmt->execute(['chat_id' => $chat_id, 'card_id' => $card_id, 'reward' => $oil_cards[$card_id]['reward']]);
                 sendTelegramMessage($bot_token, $chat_id, "Card $card_id purchased! Reward: " . $oil_cards[$card_id]['reward'] . " Oil Drops/8h");
             } else {
@@ -144,5 +148,5 @@ function sendTelegramMessageWithKeyboard($bot_token, $chat_id, $message, $keyboa
     $response = curl_exec($ch);
     curl_close($ch);
     error_log("Message with keyboard sent: $response");
+    return $response;
 }
-?>
