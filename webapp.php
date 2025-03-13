@@ -10,7 +10,8 @@ session_start();
 // دیباگ درخواست
 error_log("Request Headers: " . print_r($_SERVER, true));
 error_log("Request Method: " . $_SERVER['REQUEST_METHOD']);
-error_log("Query String: " . $_SERVER['QUERY_STRING']);
+// اصلاح خطای QUERY_STRING
+error_log("Query String: " . (isset($_SERVER['QUERY_STRING']) ? $_SERVER['QUERY_STRING'] : 'Not set'));
 
 // دریافت initData از تلگرام
 $initData = $_SERVER['HTTP_X_TELEGRAM_INIT_DATA'] ?? '';
@@ -20,11 +21,16 @@ if ($initData) {
     $data = [];
     parse_str($initData, $data);
     error_log("Parsed InitData: " . print_r($data, true));
-    if (isset($data['user']['id'])) {
-        $_SESSION['chat_id'] = $data['user']['id'];
-        error_log("Chat ID set: " . $data['user']['id']);
+    if (isset($data['user'])) {
+        $userData = json_decode($data['user'], true);
+        if (isset($userData['id'])) {
+            $_SESSION['chat_id'] = $userData['id'];
+            error_log("Chat ID set: " . $userData['id']);
+        } else {
+            error_log("No user ID in initData.");
+        }
     } else {
-        error_log("No user ID in initData.");
+        error_log("No user data in initData.");
     }
 } elseif (isset($_GET['chat_id'])) {
     $_SESSION['chat_id'] = $_GET['chat_id'];
@@ -145,6 +151,25 @@ try {
         // دیباگ اطلاعات تلگرام
         if (tg.initDataUnsafe) {
             console.log("Telegram Init Data:", tg.initDataUnsafe);
+            // ارسال initData به سرور
+            fetch('/setInitData.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(tg.initDataUnsafe),
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('InitData sent to server:', data);
+                // رفرش صفحه بعد از ارسال موفق
+                if (data.success) {
+                    window.location.reload();
+                }
+            })
+            .catch(error => {
+                console.error('Error sending initData to server:', error);
+            });
         } else {
             console.error("No Telegram Init Data available.");
         }
