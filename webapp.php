@@ -1,9 +1,9 @@
 <?php
-ini_set('display_errors', 1); // برای نمایش خطاها در توسعه
+ini_set('display_errors', 1);
 error_reporting(E_ALL);
 
-header('Access-Control-Allow-Origin: *'); // هدر CORS
-header('Content-Type: text/html; charset=utf-8'); // اطمینان از کدنویسی UTF-8
+header('Access-Control-Allow-Origin: *');
+header('Content-Type: text/html; charset=utf-8');
 
 include 'config.php';
 session_start();
@@ -13,9 +13,7 @@ error_log("Request Headers: " . print_r($_SERVER, true));
 error_log("Request Method: " . $_SERVER['REQUEST_METHOD']);
 error_log("Query String: " . (isset($_SERVER['QUERY_STRING']) ? $_SERVER['QUERY_STRING'] : 'Not set'));
 
-// بررسی سشن برای دسترسی
 if (!isset($_SESSION['chat_id'])) {
-    // اگر chat_id تو سشن نیست، منتظر می‌مونیم تا جاوااسکریپت اون رو بفرسته
     error_log("No chat_id in session yet. Waiting for client-side initData.");
 } else {
     $chat_id = $_SESSION['chat_id'];
@@ -126,42 +124,44 @@ if (!isset($_SESSION['chat_id'])) {
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script>
         const tg = window.Telegram.WebApp;
-        tg.ready();
-        tg.expand();
-
-        // دیباگ پیشرفته اطلاعات تلگرام
-        console.log("Telegram WebApp Object:", tg);
-        if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
-            console.log("Telegram Init Data:", tg.initDataUnsafe);
-            // ارسال initData به سرور
-            fetch('/setInitData.php', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(tg.initDataUnsafe),
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response was not ok ' + response.statusText);
-                }
-                return response.json();
-            })
-            .then(data => {
-                console.log('InitData sent to server:', data);
-                if (data.success) {
-                    window.location.reload();
-                } else {
-                    console.error('Server response error:', data.error);
-                }
-            })
-            .catch(error => {
-                console.error('Error sending initData to server:', error);
-            });
+        console.log("Telegram WebApp Object:", tg); // دیباگ شیء تلگرام
+        if (tg) {
+            tg.ready();
+            tg.expand();
+            console.log("Telegram Init Data:", tg.initDataUnsafe); // دیباگ initData
+            if (tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.id) {
+                fetch('/setInitData.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(tg.initDataUnsafe),
+                })
+                .then(response => {
+                    if (!response.ok) throw new Error('Network response was not ok ' + response.statusText);
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('InitData sent to server:', data);
+                    if (data.success) {
+                        window.location.reload();
+                    } else {
+                        console.error('Server response error:', data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error sending initData to server:', error);
+                });
+            } else {
+                console.error("No valid Telegram Init Data available. Ensure the page is opened via Telegram WebApp.");
+                document.querySelector('.container').innerHTML = `
+                    <p class="text-center text-danger">Error: Unable to authenticate. Please open this page via the Telegram bot.</p>
+                `;
+            }
         } else {
-            console.error("No Telegram Init Data available or user data missing. Check if the page is opened via Telegram WebApp.");
+            console.error("Telegram WebApp script failed to load.");
             document.querySelector('.container').innerHTML = `
-                <p class="text-center text-danger">Error: Unable to authenticate. Please open this page via the Telegram bot.</p>
+                <p class="text-center text-danger">Error: Telegram WebApp script not loaded. Please check your internet connection or try again.</p>
             `;
         }
     </script>
