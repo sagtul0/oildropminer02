@@ -27,8 +27,8 @@ if (!$password) {
 }
 
 try {
-    $conn = new PDO("pgsql:host=$host;dbname=$dbname", $username, $password);
-    $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $pdo = new PDO("pgsql:host=$host;dbname=$dbname", $username, $password); // تغییر $conn به $pdo
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     error_log("Database connection successful at " . date('Y-m-d H:i:s'));
 } catch (PDOException $e) {
     error_log("Connection error: " . $e->getMessage() . " at " . date('Y-m-d H:i:s'));
