@@ -2,19 +2,35 @@
 ini_set('display_errors', 1); // برای نمایش خطاها در توسعه
 error_reporting(E_ALL);
 
+header('Access-Control-Allow-Origin: *'); // هدر CORS
+
 include 'config.php';
 session_start();
 
+// دیباگ درخواست
+error_log("Request Headers: " . print_r($_SERVER, true));
+error_log("Request Method: " . $_SERVER['REQUEST_METHOD']);
+error_log("Query String: " . $_SERVER['QUERY_STRING']);
+
 // دریافت initData از تلگرام
 $initData = $_SERVER['HTTP_X_TELEGRAM_INIT_DATA'] ?? '';
+error_log("Raw InitData: " . $initData);
+
 if ($initData) {
     $data = [];
     parse_str($initData, $data);
+    error_log("Parsed InitData: " . print_r($data, true));
     if (isset($data['user']['id'])) {
         $_SESSION['chat_id'] = $data['user']['id'];
+        error_log("Chat ID set: " . $data['user']['id']);
+    } else {
+        error_log("No user ID in initData.");
     }
 } elseif (isset($_GET['chat_id'])) {
-    $_SESSION['chat_id'] = $_GET['chat_id']; // فقط برای تست اولیه
+    $_SESSION['chat_id'] = $_GET['chat_id'];
+    error_log("Chat ID from GET: " . $_GET['chat_id']);
+} else {
+    error_log("No initData or chat_id received.");
 }
 
 if (!isset($_SESSION['chat_id'])) {
@@ -58,7 +74,7 @@ try {
             margin: 0;
             padding: 0;
             min-height: 100vh;
-            background-color: #000; /* پس‌زمینه پیش‌فرض در صورت لود نشدن تصویر */
+            background-color: #000;
         }
         .navbar {
             height: 60px;
