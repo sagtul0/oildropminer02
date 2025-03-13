@@ -3,6 +3,7 @@ ini_set('display_errors', 1); // برای نمایش خطاها در توسعه
 error_reporting(E_ALL);
 
 header('Access-Control-Allow-Origin: *'); // هدر CORS
+header('Content-Type: text/html; charset=utf-8'); // اطمینان از کدنویسی UTF-8
 
 include 'config.php';
 session_start();
@@ -15,7 +16,7 @@ error_log("Query String: " . (isset($_SERVER['QUERY_STRING']) ? $_SERVER['QUERY_
 
 // دریافت initData از تلگرام
 $initData = $_SERVER['HTTP_X_TELEGRAM_INIT_DATA'] ?? '';
-error_log("Raw InitData: " . $initData);
+error_log("Raw InitData from Header: " . $initData);
 
 if ($initData) {
     $data = [];
@@ -25,21 +26,23 @@ if ($initData) {
         $userData = json_decode($data['user'], true);
         if (isset($userData['id'])) {
             $_SESSION['chat_id'] = $userData['id'];
-            error_log("Chat ID set: " . $userData['id']);
+            error_log("Chat ID set from Header: " . $userData['id']);
         } else {
-            error_log("No user ID in initData.");
+            error_log("No user ID in initData from Header.");
         }
     } else {
-        error_log("No user data in initData.");
+        error_log("No user data in initData from Header.");
     }
 } elseif (isset($_GET['chat_id'])) {
     $_SESSION['chat_id'] = $_GET['chat_id'];
     error_log("Chat ID from GET: " . $_GET['chat_id']);
 } else {
-    error_log("No initData or chat_id received.");
+    error_log("No initData or chat_id received from Header or GET.");
 }
 
+// بررسی سشن برای دسترسی
 if (!isset($_SESSION['chat_id'])) {
+    error_log("Unauthorized access attempt. InitData: " . htmlspecialchars($initData));
     die("Unauthorized access. Please open via Telegram WebApp. InitData: " . htmlspecialchars($initData));
 }
 
@@ -61,6 +64,7 @@ try {
     $active_cards_stmt->execute(['chat_id' => $chat_id]);
     $active_cards = $active_cards_stmt->fetchAll();
 } catch (PDOException $e) {
+    error_log("Database error: " . $e->getMessage());
     die("Database error: " . $e->getMessage());
 }
 ?>
@@ -68,6 +72,7 @@ try {
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"> <!-- اطمینان از رندر مدرن -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Oil Drop Miner Web App</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
@@ -76,7 +81,7 @@ try {
             background: url('assets/images/backgrounds/auth_background_simple.jpg') no-repeat center center fixed;
             background-size: cover;
             color: #fff;
-            font-family: Arial;
+            font-family: Arial, sans-serif;
             margin: 0;
             padding: 0;
             min-height: 100vh;
@@ -131,8 +136,8 @@ try {
         <?php if (count($active_cards) > 0): ?>
             <?php foreach ($active_cards as $card): ?>
                 <div class="card">
-                    <h4>Card ID: <?php echo $card['card_id']; ?> (Type: <?php echo $card['card_type']; ?>)</h4>
-                    <p>Reward: <?php echo $card['reward']; ?> Oil Drops / 8h</p>
+                    <h4>Card ID: <?php echo htmlspecialchars($card['card_id']); ?> (Type: <?php echo htmlspecialchars($card['card_type']); ?>)</h4>
+                    <p>Reward: <?php echo htmlspecialchars($card['reward']); ?> Oil Drops / 8h</p>
                 </div>
             <?php endforeach; ?>
         <?php else: ?>
@@ -148,7 +153,8 @@ try {
         tg.ready();
         tg.expand();
 
-        // دیباگ اطلاعات تلگرام
+        // دیباگ پیشرفته اطلاعات تلگرام
+        console.log("Telegram WebApp Object:", tg);
         if (tg.initDataUnsafe) {
             console.log("Telegram Init Data:", tg.initDataUnsafe);
             // ارسال initData به سرور
@@ -159,19 +165,25 @@ try {
                 },
                 body: JSON.stringify(tg.initDataUnsafe),
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok ' + response.statusText);
+                }
+                return response.json();
+            })
             .then(data => {
                 console.log('InitData sent to server:', data);
-                // رفرش صفحه بعد از ارسال موفق
                 if (data.success) {
                     window.location.reload();
+                } else {
+                    console.error('Server response error:', data.error);
                 }
             })
             .catch(error => {
                 console.error('Error sending initData to server:', error);
             });
         } else {
-            console.error("No Telegram Init Data available.");
+            console.error("No Telegram Init Data available. Check if the page is opened via Telegram WebApp.");
         }
     </script>
 </body>
