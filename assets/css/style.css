@@ -1,22 +1,33 @@
 body {
-  background: url('../images/backgrounds/auth_background_simple.jpg') no-repeat center center fixed;
-  background-size: cover;
-  height: 100vh;
   margin: 0;
   padding: 0;
-  overflow: hidden;
+  min-height: 100vh;
   font-family: 'Arial', sans-serif;
   position: relative;
+  overflow-x: hidden;
 }
 
-body::before {
+.background-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+}
+.background-container img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.background-container::after {
   content: '';
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.5); /* لایه نیمه‌شفاف برای خوانایی بهتر */
+  background: rgba(0, 0, 0, 0.5);
   z-index: -1;
 }
 
@@ -28,8 +39,9 @@ body::before {
 }
 
 .container {
-  max-width: 1200px; /* بزرگ‌تر برای نمایش بهتر کارت‌ها */
-  margin-top: 5%;
+  max-width: 1200px;
+  margin-top: 80px;
+  padding: 20px;
   position: relative;
   z-index: 1;
 }
@@ -50,25 +62,20 @@ body::before {
 }
 
 .dashboard-card h5 {
-  color: #ffcc00; /* تغییر به طلایی روشن برای عنوان‌ها */
+  color: #ffcc00;
   font-weight: bold;
   text-transform: uppercase;
 }
 
 .dashboard-card .card-text strong {
-  color: #ffffff; /* تغییر به سفید برای تضمین خوانایی */
+  color: #ffffff;
   font-weight: bold;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7); /* سایه مشکی برای کنتراست بهتر */
-  font-size: 1.1rem; /* کمی بزرگ‌تر برای برجستگی */
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+  font-size: 1.1rem;
 }
 
 .dashboard-card .card-text {
-  color: #ffffff; /* تغییر متن‌های معمولی به سفید */
-}
-
-.dashboard-card .text-success, .dashboard-card .text-danger {
-  color: #ffffff; /* تغییر به سفید برای خوانایی بهتر */
-  font-size: 1.1rem;
+  color: #ffffff;
 }
 
 .card {
@@ -102,7 +109,6 @@ body::before {
   transform: scale(1.05);
 }
 
-/* استایل برای دکمه ماین به‌صورت تصویر گرد */
 .mine-button-container {
   display: flex;
   justify-content: center;
@@ -112,12 +118,12 @@ body::before {
 .mine-image {
   width: 200px;
   height: 200px;
-  border-radius: 50%; /* شکل گرد */
+  border-radius: 50%;
   object-fit: cover;
   cursor: pointer;
   transition: all 0.3s ease;
-  border: 5px solid #D4A017; /* حاشیه طلایی */
-  box-shadow: 0 0 15px rgba(212, 160, 23, 0.7); /* سایه درخشان */
+  border: 5px solid #D4A017;
+  box-shadow: 0 0 15px rgba(212, 160, 23, 0.7);
 }
 
 .mine-image:hover {
@@ -136,11 +142,6 @@ body::before {
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes fadeInUp {
   from { opacity: 0; transform: translateY(20px); }
   to { opacity: 1; transform: translateY(0); }
 }

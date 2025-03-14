@@ -1,12 +1,22 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // Helper function to get CSRF token from meta or hidden input
+    const tg = window.Telegram.WebApp;
+    if (!tg) {
+        console.error("Telegram WebApp script failed to load.");
+        document.querySelector('.container').innerHTML = `
+            <p class="text-center text-danger">Error: Telegram WebApp script not loaded. Please check your internet connection or try again.</p>
+        `;
+        return;
+    }
+    tg.ready();
+    tg.expand();
+
+    // Helper function to get CSRF token
     const getCsrfToken = () => {
-        const metaToken = document.querySelector('meta[name="csrf_token"]');
         const inputToken = document.querySelector('input[name="csrf_token"]');
-        return metaToken ? metaToken.content : (inputToken ? inputToken.value : '');
+        return inputToken ? inputToken.value : '';
     };
 
-    // Helper function to check if user is blocked before performing actions
+    // Helper function to check if user is blocked
     const checkUserBlocked = async () => {
         try {
             const response = await fetch('check_blocked.php', {
@@ -23,9 +33,33 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (err) {
             console.error('Error checking blocked status:', err);
             alert('An error occurred while checking your account status. Please try again.');
-            return true; // Assume blocked on error to prevent further actions
+            return true;
         }
     };
+
+    // Send InitData to server
+    if (tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.id) {
+        fetch('/setInitData', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(tg.initDataUnsafe)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                console.log('InitData sent successfully');
+                location.reload();
+            } else {
+                console.error('Server response error:', data.error);
+            }
+        })
+        .catch(error => console.error('Error sending initData:', error));
+    } else {
+        console.error("No valid Telegram Init Data available.");
+        document.querySelector('.container').innerHTML = `
+            <p class="text-center text-danger">Error: Unable to authenticate. Please open via Telegram bot.</p>
+        `;
+    }
 
     /****************************************
      *  MINE OIL
@@ -34,37 +68,21 @@ document.addEventListener('DOMContentLoaded', () => {
     if (mineBtn && !mineBtn.hasAttribute('data-event-added')) {
         mineBtn.setAttribute('data-event-added', 'true');
         mineBtn.addEventListener("click", async () => {
-            // Check if user is blocked
             if (await checkUserBlocked()) return;
 
             fetch("mine.php", {
                 method: "POST",
                 headers: { "Content-Type": "application/x-www-form-urlencoded" },
-                body: new URLSearchParams({
-                    mine: 1,
-                    csrf_token: getCsrfToken()
-                })
+                body: new URLSearchParams({ mine: 1, csrf_token: getCsrfToken() })
             })
-            .then(res => {
-                if (!res.ok) {
-                    throw new Error("Network response was not ok: " + res.statusText);
-                }
-                return res.text();
-            })
-            .then(text => {
-                try {
-                    const data = JSON.parse(text);
-                    console.log('Mine Response:', data);
-                    if (data.success) {
-                        const oilCount = document.getElementById('oil-count');
-                        const clicksLeft = document.getElementById('clicks-left');
-                        if (oilCount && clicksLeft) {
-                            oilCount.textContent = data.oil_drops || 0;
-                            clicksLeft.textContent = data.clicks_left || 0;
-                        } else {
-                            console.error('Elements oil-count or clicks-left not found in DOM');
-                            alert('UI update failed: Elements not found. Check console for details.');
-                        }
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    const oilCount = document.getElementById('oil-count');
+                    const clicksLeft = document.getElementById('clicks-left');
+                    if (oilCount && clicksLeft) {
+                        oilCount.textContent = data.oil_drops || 0;
+                        clicksLeft.textContent = `Clicks Left: ${data.clicks_left || 0}`;
                         if (data.clicks_left <= 0) {
                             mineBtn.classList.remove("shine");
                             mineBtn.disabled = true;
@@ -73,72 +91,19 @@ document.addEventListener('DOMContentLoaded', () => {
                             setTimeout(() => mineBtn.classList.remove("shine"), 500);
                         }
                     } else {
-                        alert(data.message || "Mining failed. Please try again.");
+                        console.error('Elements oil-count or clicks-left not found');
+                        alert('UI update failed. Check console.');
                     }
-                } catch (e) {
-                    console.error('JSON Parse Error:', e, 'Response:', text);
-                    alert('An error occurred while mining: Invalid response from server. Check console for details.');
+                } else {
+                    alert(data.message || "Mining failed.");
                 }
             })
             .catch(err => {
                 console.error('Mine Error:', err);
-                alert('An error occurred while mining: ' + err.message);
+                alert('An error occurred while mining.');
             });
         });
     }
-
-    /****************************************
-     *  PURCHASE BOOST PLANS
-     ****************************************/
-
-    // Generic function to handle boost plan purchase
-    const purchaseBoostPlan = async (plan, buttonId) => {
-        const btn = document.getElementById(buttonId);
-        if (btn) {
-            btn.addEventListener("click", async (e) => {
-                e.preventDefault();
-                // Check if user is blocked
-                if (await checkUserBlocked()) return;
-
-                fetch("purchase.php", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-                    body: new URLSearchParams({
-                        plan: plan,
-                        csrf_token: getCsrfToken()
-                    })
-                })
-                .then(res => {
-                    if (!res.ok) throw new Error("Network response was not ok: " + res.statusText);
-                    return res.json();
-                })
-                .then(data => {
-                    if (data.success) {
-                        alert(data.message || `${plan.toUpperCase()} Plan purchased successfully!`);
-                        if (data.boost_multiplier) {
-                            const boostDisplay = document.querySelector(".fw-bold");
-                            if (boostDisplay) {
-                                boostDisplay.textContent = data.boost_multiplier + "×";
-                            } else {
-                                console.error('Boost multiplier element not found in DOM');
-                            }
-                        }
-                    } else {
-                        alert(data.message || "Purchase failed. Please try again.");
-                    }
-                })
-                .catch(err => {
-                    console.error(`Error purchasing ${plan} plan:`, err);
-                    alert(`An error occurred while purchasing the ${plan} plan. Check console for details.`);
-                });
-            });
-        }
-    };
-
-    // Initialize boost plan buttons
-    purchaseBoostPlan("2x", "buy-2x");
-    purchaseBoostPlan("5x", "buy-5x");
-    purchaseBoostPlan("10x", "buy-10x");
 
     /****************************************
      *  DEPOSIT TON
@@ -147,40 +112,29 @@ document.addEventListener('DOMContentLoaded', () => {
     if (depositForm) {
         depositForm.addEventListener("submit", async (e) => {
             e.preventDefault();
-            // Check if user is blocked
             if (await checkUserBlocked()) return;
 
             const amount = document.getElementById("amount").value;
-            const csrfToken = getCsrfToken();
             fetch("deposit.php", {
                 method: "POST",
                 headers: { "Content-Type": "application/x-www-form-urlencoded" },
-                body: new URLSearchParams({
-                    amount: amount,
-                    csrf_token: csrfToken
-                })
+                body: new URLSearchParams({ amount: amount, csrf_token: getCsrfToken() })
             })
-            .then(res => {
-                if (!res.ok) throw new Error("Network response was not ok: " + res.statusText);
-                return res.json();
-            })
+            .then(res => res.json())
             .then(data => {
                 if (data.success) {
                     alert(data.message || "Deposit successful!");
                     const balanceText = document.querySelector(".balance-text");
                     if (balanceText) {
-                        balanceText.textContent = numberFormat(data.new_balance || 0, 2) + ' TON';
-                    } else {
-                        console.error('Balance element not found in DOM');
-                        alert('UI update failed: Balance element not found. Check console for details.');
+                        balanceText.textContent = data.new_balance.toFixed(2) + ' TON';
                     }
                 } else {
-                    alert(data.message || "Deposit failed. Please try again.");
+                    alert(data.message || "Deposit failed.");
                 }
             })
             .catch(err => {
                 console.error('Deposit Error:', err);
-                alert('An error occurred while depositing: ' + err.message);
+                alert('An error occurred while depositing.');
             });
         });
     }
