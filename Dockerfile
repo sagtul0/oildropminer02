@@ -1,15 +1,22 @@
 FROM php:8.1-apache
 
-# نصب پیش‌نیازهای PostgreSQL
+# نصب وابستگی‌ها و افزونه‌های PDO و PostgreSQL
 RUN apt-get update && apt-get install -y \
     libpq-dev \
     && docker-php-ext-install pdo pgsql
 
-# کپی کردن فایل‌ها و اسکریپت
+# کپی فایل تنظیمات PHP
+COPY php.ini /usr/local/etc/php/
+
+# کپی فایل‌ها
 COPY . /var/www/html
 COPY entrypoint.sh /usr/local/bin/
+
+# دادن دسترسی اجرایی
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
-# تنظیم پورت
-EXPOSE 8080
+# تنظیمات Apache
+RUN a2enmod rewrite
+
+# اجرای اسکریپت ورود
 CMD ["entrypoint.sh"]

@@ -7,25 +7,31 @@ include 'config.php';
 
 if (!$conn) {
     error_log("Connection is null after including config.php at " . date('Y-m-d H:i:s'));
-    die("Error: Database connection not established.");
+    http_response_code(500);
+    die(json_encode(['success' => false, 'message' => 'Error: Database connection not established.']));
 }
+
+session_start();
 
 $bot_token = getenv('TELEGRAM_BOT_TOKEN');
 if (!$bot_token) {
     error_log("TELEGRAM_BOT_TOKEN is not set at " . date('Y-m-d H:i:s'));
-    die("Error: TELEGRAM_BOT_TOKEN not found.");
+    http_response_code(500);
+    die(json_encode(['success' => false, 'message' => 'Error: TELEGRAM_BOT_TOKEN not found.']));
 }
 error_log("Bot token retrieved: $bot_token");
 
 $update_json = file_get_contents('php://input');
 if ($update_json === false) {
-    error_log("Error reading php://input: " . (error_get_last()['message'] ?? 'Unknown error') . " at " . date('Y-m-d H:i:s'));
-    die("Error: Cannot read Webhook data.");
+    error_log("Error reading php://initData: " . (error_get_last()['message'] ?? 'Unknown error') . " at " . date('Y-m-d H:i:s'));
+    http_response_code(400);
+    die(json_encode(['success' => false, 'message' => 'Error: Cannot read Webhook data.']));
 }
 error_log("Webhook data received: $update_json");
 
 $update = json_decode($update_json, true);
 
+// پردازش پیام‌ها
 if (isset($update['message'])) {
     $chat_id = $update['message']['chat']['id'];
     $username = $update['message']['from']['username'] ?? '';
@@ -35,9 +41,11 @@ if (isset($update['message'])) {
 
     if (empty($chat_id)) {
         error_log("Chat ID is empty at " . date('Y-m-d H:i:s'));
-        die("Error: Chat ID not found.");
+        http_response_code(400);
+        die(json_encode(['success' => false, 'message' => 'Error: Chat ID not found.']));
     }
 
+    $_SESSION['chat_id'] = $chat_id; // ذخیره chat_id توی سشن
     error_log("Message received - Chat ID: $chat_id, Text: $text");
 
     $stmt = $conn->prepare("SELECT chat_id, ton_address, oil_drops, balance, invite_reward FROM users WHERE chat_id = :chat_id");
@@ -104,6 +112,29 @@ if (isset($update['message'])) {
         $stmt = $conn->prepare("INSERT INTO referrals (referrer_id, referred_id, created_at) VALUES (:chat_id, :referred_id, NOW())");
         $stmt->execute(['chat_id' => $chat_id, 'referred_id' => $referred_id]);
         sendTelegramMessage($bot_token, $chat_id, "Referral registered!");
+    }
+}
+
+// پردازش WebApp Data (برای اوپن اپ)
+if (isset($update['web_app_data']) || isset($_GET['initData'])) {
+    $initData = $update['web_app_data']['data'] ?? $_GET['initData'] ?? '';
+    if ($initData) {
+        $tgData = json_decode($initData, true);
+        $chat_id = $tgData['user']['id'] ?? null;
+
+        if ($chat_id) {
+            $_SESSION['chat_id'] = $chat_id; // ذخیره chat_id توی سشن
+            error_log("WebApp data processed - Chat ID: $chat_id");
+            // می‌تونی اینجا ریدایرکت به webapp.php کنی یا داده رو برگردونی
+            http_response_code(200);
+            echo json_encode(['success' => true, 'message' => 'Authenticated', 'chat_id' => $chat_id]);
+            exit;
+        } else {
+            error_log("Invalid WebApp data - No chat_id at " . date('Y-m-d H:i:s'));
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Invalid Telegram data']);
+            exit;
+        }
     }
 }
 

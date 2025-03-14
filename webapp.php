@@ -132,9 +132,3 @@ if (!isset($_SESSION['chat_id'])) {
     <script src="main.js"></script>
 </body>
 </html>
-
-<?php
-function number_format($number, $decimals) {
-    return number_format($number, $decimals, '.', ',');
-}
-?>
