@@ -13,7 +13,7 @@ echo "Loaded PHP modules: $(php -m)" > /var/www/html/php_modules.log
 
 # بررسی وجود افزونه PDO_PGSQL
 if ! php -m | grep -q pdo_pgsql; then
-    echo "Error: PDO_PGSQL extension is not enabled. Please check your PHP configuration."
+    echo "Error: PDO_PGSQL extension is not enabled. Please check your PHP configuration and logs at /var/www/html/php_modules.log" >&2
     exit 1
 fi
 

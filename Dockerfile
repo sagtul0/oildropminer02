@@ -10,10 +10,11 @@ RUN echo "extension=pdo.so" > /usr/local/etc/php/conf.d/pdo.ini
 RUN echo "extension=pgsql.so" > /usr/local/etc/php/conf.d/pgsql.ini
 RUN echo "extension=pdo_pgsql.so" > /usr/local/etc/php/conf.d/pdo_pgsql.ini
 
-# کپی فایل تنظیمات PHP (در صورت نیاز)
-COPY php.ini /usr/local/etc/php/
+# دیباگ برای چک کردن ماژول‌ها
+RUN echo "Checking PHP modules..." > /var/www/html/php_modules.log
+RUN php -m >> /var/www/html/php_modules.log
 
-# کپی فایل‌ها
+# کپی فایل‌ها (بدون کپی php.ini جداگانه)
 COPY . /var/www/html
 COPY entrypoint.sh /usr/local/bin/
 
