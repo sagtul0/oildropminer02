@@ -5,7 +5,12 @@ RUN apt-get update && apt-get install -y \
     libpq-dev \
     && docker-php-ext-install pdo pgsql
 
-# کپی فایل تنظیمات PHP
+# تنظیم دستی افزونه‌ها توی فایل‌های جداگانه
+RUN echo "extension=pdo.so" > /usr/local/etc/php/conf.d/pdo.ini
+RUN echo "extension=pgsql.so" > /usr/local/etc/php/conf.d/pgsql.ini
+RUN echo "extension=pdo_pgsql.so" > /usr/local/etc/php/conf.d/pdo_pgsql.ini
+
+# کپی فایل تنظیمات PHP (در صورت نیاز)
 COPY php.ini /usr/local/etc/php/
 
 # کپی فایل‌ها
