@@ -1,1 +1,8 @@
-php-8.2
+services:
+  - type: web
+    name: oildropminer02-eay2
+    env: php
+    phpVersion: "8.2" # ورژن PHP رو اینجا مشخص کن
+    repo: https://github.com/your-repo # آدرس ریپازیتوری
+    buildCommand: ""
+    startCommand: "php -S 0.0.0.0:10000"

@@ -5,7 +5,7 @@ error_reporting(E_ALL);
 header('Access-Control-Allow-Origin: *');
 header('Content-Type: text/html; charset=utf-8');
 
-include 'config.php';
+include 'config.php'; // فایل تنظیمات دیتابیس
 session_start();
 
 // دیباگ درخواست
@@ -17,6 +17,10 @@ if (!isset($_SESSION['chat_id'])) {
     error_log("No chat_id in session yet. Waiting for client-side initData.");
 } else {
     $chat_id = $_SESSION['chat_id'];
+    if (!isset($pdo)) {
+        error_log("Error: PDO connection not established. Check config.php.");
+        die("Error: Database connection not established. Please check server logs.");
+    }
     try {
         $stmt = $pdo->prepare("SELECT oil_drops, balance, invite_reward FROM users WHERE chat_id = :chat_id");
         $stmt->execute(['chat_id' => $chat_id]);
@@ -45,6 +49,7 @@ if (!isset($_SESSION['chat_id'])) {
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Oil Drop Miner Web App</title>
+    <link rel="preload" href="assets/images/backgrounds/auth_background_simple.jpg" as="image">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <style>
         body {
@@ -124,11 +129,13 @@ if (!isset($_SESSION['chat_id'])) {
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script>
         const tg = window.Telegram.WebApp;
-        console.log("Telegram WebApp Object:", tg); // دیباگ شیء تلگرام
+        console.log("Telegram WebApp Object:", tg);
+        console.log("Full tg object:", JSON.stringify(tg));
+        console.log("initDataUnsafe:", JSON.stringify(tg.initDataUnsafe));
         if (tg) {
             tg.ready();
             tg.expand();
-            console.log("Telegram Init Data:", tg.initDataUnsafe); // دیباگ initData
+            console.log("Telegram Init Data:", tg.initDataUnsafe);
             if (tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.id) {
                 fetch('/setInitData.php', {
                     method: 'POST',
@@ -155,7 +162,7 @@ if (!isset($_SESSION['chat_id'])) {
             } else {
                 console.error("No valid Telegram Init Data available. Ensure the page is opened via Telegram WebApp.");
                 document.querySelector('.container').innerHTML = `
-                    <p class="text-center text-danger">Error: Unable to authenticate. Please open this page via the Telegram bot.</p>
+                    <p class="text-center text-danger">Error: Unable to authenticate. Please open this page via the Telegram bot by clicking the "Open App" button in the bot.</p>
                 `;
             }
         } else {

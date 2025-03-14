@@ -1,37 +1,21 @@
 <?php
-ini_set('display_errors', 1);
-ini_set('log_errors', 1);
+session_start();
+header('Content-Type: application/json');
 
-$host = getenv('DB_HOST');
-if (!$host) {
-    error_log("Error: DB_HOST environment variable not set at " . date('Y-m-d H:i:s'));
-    die("Server error. Please try again later.");
-}
+error_log("setInitData.php called");
 
-$dbname = getenv('DB_NAME');
-if (!$dbname) {
-    error_log("Error: DB_NAME environment variable not set at " . date('Y-m-d H:i:s'));
-    die("Server error. Please try again later.");
-}
+// دریافت داده از جاوااسکریپت
+$input = file_get_contents('php://input');
+$data = json_decode($input, true);
 
-$username = getenv('DB_USERNAME');
-if (!$username) {
-    error_log("Error: DB_USERNAME environment variable not set at " . date('Y-m-d H:i:s'));
-    die("Server error. Please try again later.");
-}
+error_log("Received InitData from client: " . print_r($data, true));
 
-$password = getenv('DB_PASSWORD');
-if (!$password) {
-    error_log("Error: DB_PASSWORD environment variable not set at " . date('Y-m-d H:i:s'));
-    die("Server error. Please try again later.");
-}
-
-try {
-    $pdo = new PDO("pgsql:host=$host;dbname=$dbname", $username, $password); // تغییر $conn به $pdo
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    error_log("Database connection successful at " . date('Y-m-d H:i:s'));
-} catch (PDOException $e) {
-    error_log("Connection error: " . $e->getMessage() . " at " . date('Y-m-d H:i:s'));
-    die("Server error. Please try again later.");
+if ($data && isset($data['user']) && isset($data['user']['id'])) {
+    $_SESSION['chat_id'] = $data['user']['id'];
+    error_log("Chat ID set from client InitData: " . $_SESSION['chat_id']);
+    echo json_encode(['success' => true]);
+} else {
+    error_log("No user ID in client InitData or data is invalid.");
+    echo json_encode(['success' => false, 'error' => 'No user ID found or invalid data']);
 }
 ?>
