@@ -1,15 +1,15 @@
 FROM php:8.2-apache
 
-# نصب وابستگی‌ها و نصب دستی‌تر افزونه‌ها
+# نصب وابستگی‌ها و افزونه‌های PHP
 RUN apt-get update && apt-get install -y \
     libpq-dev \
     && docker-php-ext-configure pgsql -with-pgsql=/usr/local/pgsql \
-    && docker-php-ext-install pdo pgsql
+    && docker-php-ext-install pdo pgsql pdo_pgsql
 
-# تنظیم دستی افزونه‌ها
-RUN echo "extension=pdo.so" > /usr/local/etc/php/conf.d/pdo.ini
+# تنظیمات افزونه‌ها
 RUN echo "extension=pgsql.so" > /usr/local/etc/php/conf.d/pgsql.ini
 RUN echo "extension=pdo_pgsql.so" > /usr/local/etc/php/conf.d/pdo_pgsql.ini
+# نیازی به extension=pdo.so نیست چون به صورت پیش‌فرض لود شده
 
 # دیباگ برای چک کردن ماژول‌ها
 RUN echo "Checking PHP modules..." > /var/www/html/php_modules.log
