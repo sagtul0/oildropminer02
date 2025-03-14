@@ -9,11 +9,12 @@ RUN apt-get update && apt-get install -y \
 # تنظیمات افزونه‌ها
 RUN echo "extension=pgsql.so" > /usr/local/etc/php/conf.d/pgsql.ini
 RUN echo "extension=pdo_pgsql.so" > /usr/local/etc/php/conf.d/pdo_pgsql.ini
-# نیازی به extension=pdo.so نیست چون به صورت پیش‌فرض لود شده
 
-# دیباگ برای چک کردن ماژول‌ها
+# دیباگ برای چک کردن ماژول‌ها و وجود فایل‌ها
 RUN echo "Checking PHP modules..." > /var/www/html/php_modules.log
 RUN php -m >> /var/www/html/php_modules.log
+RUN echo "Listing extension directory contents..." >> /var/www/html/php_modules.log
+RUN ls -la /usr/local/lib/php/extensions/no-debug-non-zts-20220829/ >> /var/www/html/php_modules.log
 
 # کپی فایل‌ها
 COPY . /var/www/html
