@@ -1,35 +1,20 @@
 <?php
 session_start();
 
-// متغیرهای محیطی از Render
+// متغیر محیطی DATABASE_URL از Render
 $database_url = getenv('DATABASE_URL');
-$dbHost = getenv('DB_HOST');
-$dbName = getenv('DB_NAME');
-$dbUsername = getenv('DB_USERNAME');
-$dbPassword = getenv('DB_PASSWORD');
-
-error_log("DB_HOST: $dbHost, DB_NAME: $dbName, DB_USERNAME: $dbUsername");
+error_log("DATABASE_URL: $database_url");
 
 // اتصال به دیتابیس PostgreSQL
 try {
-    if ($database_url) {
-        // اگر DATABASE_URL تنظیم شده باشه، از اون استفاده می‌کنیم
-        $conn = new PDO($database_url);
-        error_log("Connected using DATABASE_URL at " . date('Y-m-d H:i:s'));
-    } else {
-        // در غیر این صورت، از متغیرهای جداگانه استفاده می‌کنیم
-        if (!$dbHost || !$dbName || !$dbUsername || !$dbPassword) {
-            error_log("Database environment variables (DB_HOST, DB_NAME, DB_USERNAME, DB_PASSWORD) are not set at " . date('Y-m-d H:i:s'));
-            http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Database environment variables not found']);
-            exit;
-        }
-
-        $dsn = "pgsql:host=$dbHost;port=5432;dbname=$dbName";
-        $conn = new PDO($dsn, $dbUsername, $dbPassword);
-        error_log("Connected using individual DB variables at " . date('Y-m-d H:i:s'));
+    if (!$database_url) {
+        error_log("DATABASE_URL is not set at " . date('Y-m-d H:i:s'));
+        http_response_code(500);
+        echo json_encode(['success' => false, 'error' => 'DATABASE_URL not found']);
+        exit;
     }
 
+    $conn = new PDO($database_url);
     $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     error_log("Database connection successful at " . date('Y-m-d H:i:s'));
 } catch (PDOException $e) {
