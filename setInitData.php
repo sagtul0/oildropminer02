@@ -13,7 +13,9 @@ error_log("Received InitData from client: " . print_r($data, true));
 if ($data && isset($data['user']) && isset($data['user']['id'])) {
     $_SESSION['chat_id'] = $data['user']['id'];
     error_log("Chat ID set from client InitData: " . $data['user']['id']);
-    echo json_encode(['success' => true]);
+    // ریدایرکت به webapp.php بعد از ست کردن سشن
+    header('Location: /webapp.php');
+    exit;
 } else {
     error_log("No user ID in client InitData or data is invalid.");
     echo json_encode(['success' => false, 'error' => 'No user ID found or invalid data']);

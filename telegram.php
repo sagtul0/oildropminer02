@@ -11,7 +11,9 @@ if (!$conn) {
     die(json_encode(['success' => false, 'message' => 'Error: Database connection not established.']));
 }
 
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 $bot_token = getenv('TELEGRAM_BOT_TOKEN');
 if (!$bot_token) {
@@ -117,7 +119,7 @@ if (isset($update['message'])) {
 
 // پردازش WebApp Data (برای اوپن اپ)
 if (isset($update['web_app_data']) || isset($_GET['initData'])) {
-    $initData = $update['web_app_data']['data'] ?? $_GET['initData'] ?? '';
+    $initData = $update['web_app_data']['data'] || $_GET['initData'] || '';
     if ($initData) {
         $tgData = json_decode($initData, true);
         $chat_id = $tgData['user']['id'] ?? null;
