@@ -15,6 +15,12 @@ error_log("Request Headers: " . print_r($_SERVER, true));
 error_log("Request Method: " . $_SERVER['REQUEST_METHOD']);
 error_log("Query String: " . (isset($_SERVER['QUERY_STRING']) ? $_SERVER['QUERY_STRING'] : 'Not set'));
 
+// اگر chat_id توی پارامتر GET اومده، توی سشن ذخیره کن
+if (isset($_GET['chat_id']) && !empty($_GET['chat_id'])) {
+    $_SESSION['chat_id'] = $_GET['chat_id'];
+    error_log("Chat ID set from GET parameter: " . $_SESSION['chat_id']);
+}
+
 if (!isset($_SESSION['chat_id'])) {
     error_log("No chat_id in session yet. Waiting for client-side initData.");
 } else {
