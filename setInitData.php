@@ -17,16 +17,8 @@ if ($data && isset($data['user']) && isset($data['user']['id'])) {
     $_SESSION['chat_id'] = $chat_id;
     error_log("Chat ID set from client InitData: " . $chat_id);
 
-    // تولید یه توکن موقت
-    $token = bin2hex(random_bytes(16));
-    
-    // ذخیره chat_id و توکن توی دیتابیس
-    $stmt = $conn->prepare("INSERT INTO temp_auth_tokens (token, chat_id, created_at) VALUES (:token, :chat_id, NOW())");
-    $stmt->execute(['token' => $token, 'chat_id' => $chat_id]);
-    
-    // ریدایرکت با توکن
-    header('Location: https://oildropminer02-eay2.onrender.com/webapp.php?token=' . urlencode($token));
-    exit;
+    // پاسخ JSON برای کلاینت
+    echo json_encode(['success' => true, 'redirect_url' => 'https://oildropminer02-eay2.onrender.com/webapp.php']);
 } else {
     error_log("No user ID in client InitData or data is invalid.");
     echo json_encode(['success' => false, 'error' => 'No user ID found or invalid data']);

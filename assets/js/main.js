@@ -37,7 +37,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // Send InitData to server
+    // Helper function to handle errors consistently
+    const handleError = (message, error) => {
+        console.error(`${message}:`, error);
+        document.querySelector('.container').innerHTML = `
+            <p class="text-center text-danger">Error: ${message}. Please try again or contact support.</p>
+        `;
+    };
+
+    // Send InitData to server and handle redirect
     if (tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.id) {
         fetch('/setInitData', {
             method: 'POST',
@@ -48,12 +56,19 @@ document.addEventListener('DOMContentLoaded', () => {
         .then(data => {
             if (data.success) {
                 console.log('InitData sent successfully');
-                location.reload();
+                // به جای ریلود، ریدایرکت به URL دریافت‌شده از سرور
+                if (data.redirect_url) {
+                    window.location.href = data.redirect_url;
+                } else {
+                    handleError('No redirect URL provided by server', new Error('Missing redirect_url in response'));
+                }
             } else {
-                console.error('Server response error:', data.error);
+                handleError('Failed to authenticate user', new Error(data.error || 'Unknown error'));
             }
         })
-        .catch(error => console.error('Error sending initData:', error));
+        .catch(error => {
+            handleError('Error sending initData to server', error);
+        });
     } else {
         console.error("No valid Telegram Init Data available.");
         document.querySelector('.container').innerHTML = `
