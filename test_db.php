@@ -1,9 +1,8 @@
 <?php
-include 'config.php';
 try {
-    $result = $pdo->query("SELECT 1")->fetch();
-    echo "Database connection successful: " . print_r($result, true);
+    $db = new PDO("pgsql:host=" . parse_url(getenv("DATABASE_URL"))["host"] . ";port=" . parse_url(getenv("DATABASE_URL"))["port"] . ";dbname=" . ltrim(parse_url(getenv("DATABASE_URL"))["path"], "/") . ";user=" . parse_url(getenv("DATABASE_URL"))["user"] . ";password=" . parse_url(getenv("DATABASE_URL"))["pass"]);
+    echo "اتصال موفق!";
 } catch (PDOException $e) {
-    echo "Error: " . $e->getMessage();
+    echo "خطا: " . $e->getMessage();
 }
 ?>
