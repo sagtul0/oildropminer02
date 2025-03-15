@@ -9,24 +9,26 @@ error_log("DATABASE_URL: $database_url");
 try {
     if (!$database_url) {
         error_log("DATABASE_URL is not set at " . date('Y-m-d H:i:s'));
-        http_response_code(500);
-        echo json_encode(['success' => false, 'error' => 'DATABASE_URL not found']);
-        exit;
+        die("DATABASE_URL not found. Please set the environment variable.");
     }
 
-    $conn = new PDO($database_url);
+    // جدا کردن بخش‌های DATABASE_URL
+    $db_params = parse_url($database_url);
+    $host = $db_params["host"];
+    $port = $db_params["port"];
+    $dbname = ltrim($db_params["path"], "/");
+    $user = $db_params["user"];
+    $pass = $db_params["pass"];
+
+    // ساخت رشته اتصال PDO
+    $dsn = "pgsql:host=$host;port=$port;dbname=$dbname";
+    $conn = new PDO($dsn, $user, $pass);
     $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     error_log("Database connection successful at " . date('Y-m-d H:i:s'));
 } catch (PDOException $e) {
     error_log("Connection failed: " . $e->getMessage() . " at " . date('Y-m-d H:i:s'));
     $conn = null;
-}
-
-if ($conn === null) {
-    error_log("Connection is null after including config.php at " . date('Y-m-d H:i:s'));
-    http_response_code(500);
-    echo json_encode(['success' => false, 'error' => 'Database connection not established. Check server logs.']);
-    exit;
+    die("Database connection failed: " . $e->getMessage());
 }
 
 // تنظیم CSRF Token

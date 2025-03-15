@@ -17,7 +17,7 @@ if (!isset($_SESSION['chat_id'])) {
     error_log("No chat_id in session yet. Waiting for client-side initData.");
 } else {
     $chat_id = $_SESSION['chat_id'];
-    if (!isset($conn)) {
+    if (!isset($conn) || $conn === null) {
         error_log("Error: PDO connection not established. Check config.php.");
         die("Error: Database connection not established. Please check server logs.");
     }
@@ -26,7 +26,7 @@ if (!isset($_SESSION['chat_id'])) {
         $stmt->execute(['chat_id' => $chat_id]);
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
         if (!$user) {
-            die("User not found. Please start the bot with /start. Chat ID: " . $chat_id);
+            die("User not found. Please start the bot with /start. Chat ID: " . htmlspecialchars($chat_id));
         }
 
         $oil_drops = (int)$user['oil_drops'];
@@ -44,7 +44,7 @@ if (!isset($_SESSION['chat_id'])) {
         $active_cards = $active_cards_stmt->fetchAll(PDO::FETCH_ASSOC);
     } catch (PDOException $e) {
         error_log("Database error: " . $e->getMessage());
-        die("Database error: " . $e->getMessage());
+        die("Database error: " . htmlspecialchars($e->getMessage()));
     }
 }
 ?>
@@ -75,24 +75,24 @@ if (!isset($_SESSION['chat_id'])) {
             <h1 class="text-center text-warning mb-4">Oil Drop Miner Dashboard</h1>
             <div class="dashboard-card">
                 <h5>Your Stats</h5>
-                <p class="card-text">Oil Drops: <strong id="oil-count"><?php echo $oil_drops; ?></strong></p>
+                <p class="card-text">Oil Drops: <strong id="oil-count"><?php echo htmlspecialchars($oil_drops); ?></strong></p>
                 <p class="card-text">TON Balance: <strong class="balance-text"><?php echo number_format($balance, 2); ?> TON</strong></p>
-                <p class="card-text">Referrals: <strong><?php echo $referrals; ?></strong></p>
-                <p class="card-text">Current Boost: <strong class="fw-bold"><?php echo $boost_multiplier; ?>×</strong></p>
+                <p class="card-text">Referrals: <strong><?php echo htmlspecialchars($referrals); ?></strong></p>
+                <p class="card-text">Current Boost: <strong class="fw-bold"><?php echo htmlspecialchars($boost_multiplier); ?>×</strong></p>
                 <p class="card-text">Auto Clicker: <strong><?php echo $auto_clicker ? 'Active (Until ' . $auto_clicker_expiration->format('Y-m-d H:i:s') . ')' : 'Not Active'; ?></strong></p>
-                <p class="card-text">Today's Clicks: <strong><?php echo $today_clicks; ?>/1000</strong></p>
+                <p class="card-text">Today's Clicks: <strong><?php echo htmlspecialchars($today_clicks); ?>/1000</strong></p>
             </div>
 
             <h2 class="text-center text-warning mb-4">Mine Oil</h2>
             <div class="mine-button-container">
-                <img src="assets/images/mine-button.png" alt="Mine Oil" id="mine-btn" class="mine-image <?php echo $clicks_left > 0 ? 'shine' : ''; ?>" data-clicks-left="<?php echo $clicks_left; ?>" <?php echo $clicks_left <= 0 ? 'disabled' : ''; ?>>
+                <img src="assets/images/mine-button.png" alt="Mine Oil" id="mine-btn" class="mine-image <?php echo $clicks_left > 0 ? 'shine' : ''; ?>" data-clicks-left="<?php echo htmlspecialchars($clicks_left); ?>" <?php echo $clicks_left <= 0 ? 'disabled' : ''; ?>>
             </div>
-            <p class="text-center text-white" id="clicks-left">Clicks Left: <?php echo $clicks_left; ?></p>
+            <p class="text-center text-white" id="clicks-left">Clicks Left: <?php echo htmlspecialchars($clicks_left); ?></p>
 
             <h2 class="text-center text-warning mb-4">Purchase Boost Plans</h2>
             <div class="dashboard-card">
                 <form method="post" action="plans.php">
-                    <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
                     <button type="submit" name="plan" value="2x" class="btn btn-warning m-2">Buy 2x Boost (0.2 TON)</button>
                     <button type="submit" name="plan" value="5x" class="btn btn-warning m-2">Buy 5x Boost (0.5 TON)</button>
                     <button type="submit" name="plan" value="10x" class="btn btn-warning m-2">Buy 10x Boost (2.25 TON)</button>
@@ -103,13 +103,13 @@ if (!isset($_SESSION['chat_id'])) {
             <h2 class="text-center text-warning mb-4">Deposit TON</h2>
             <div class="dashboard-card">
                 <form action="deposit.php" method="POST">
-                    <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
                     <div class="mb-3">
                         <input type="number" id="amount" name="amount" class="oil-input" placeholder="Enter TON amount" step="0.01" required>
                     </div>
                     <button type="submit" class="btn btn-warning oil-btn">Deposit</button>
                 </form>
-                <p class="text-center text-white mt-2">Send TON to: <strong><?php echo 'UQDCy7GZFzZCUwM4_R7ZgqZW34aDfgV9CEY8BX-ucyQRxGfo'; ?></strong></p>
+                <p class="text-center text-white mt-2">Send TON to: <strong><?php echo htmlspecialchars('UQDCy7GZFzZCUwM4_R7ZgqZW34aDfgV9CEY8BX-ucyQRxGfo'); ?></strong></p>
             </div>
 
             <h2 class="text-center text-warning mb-4">Active Cards</h2>
