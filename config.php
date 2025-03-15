@@ -1,35 +1,33 @@
 <?php
 session_start();
 
-// متغیر محیطی DATABASE_URL از Render
 $database_url = getenv('DATABASE_URL');
 error_log("DATABASE_URL: $database_url");
 
-// اتصال به دیتابیس PostgreSQL
+if (!$database_url) {
+    error_log("DATABASE_URL is not set at " . date('Y-m-d H:i:s'));
+    die("DATABASE_URL not found. Please check Render environment variables.");
+}
+
+// جدا کردن دستی بخش‌ها
+$url_parts = explode('@', str_replace('postgres://', '', $database_url));
+if (count($url_parts) < 2) {
+    error_log("Invalid DATABASE_URL format at " . date('Y-m-d H:i:s') . " - " . $database_url);
+    die("Invalid DATABASE_URL format.");
+}
+
+$credentials = explode(':', $url_parts[0]);
+$user = $credentials[0];
+$pass = $credentials[1];
+$host_port_db = explode('/', $url_parts[1]);
+$host_port = explode(':', $host_port_db[0]);
+$host = $host_port[0];
+$port = $host_port[1] ?? '5432';
+$dbname = $host_port_db[1];
+
+error_log("Parsed: user=$user, pass=****, host=$host, port=$port, dbname=$dbname");
+
 try {
-    if (!$database_url) {
-        error_log("DATABASE_URL is not set at " . date('Y-m-d H:i:s'));
-        die("DATABASE_URL not found. Please check Render environment variables.");
-    }
-
-    // جدا کردن بخش‌های DATABASE_URL
-    $db_params = parse_url($database_url);
-    if (!$db_params) {
-        error_log("Failed to parse DATABASE_URL at " . date('Y-m-d H:i:s'));
-        die("Failed to parse DATABASE_URL.");
-    }
-
-    $host = $db_params['host'] ?? '';
-    $port = $db_params['port'] ?? '5432';
-    $dbname = ltrim($db_params['path'] ?? '', '/');
-    $user = $db_params['user'] ?? '';
-    $pass = $db_params['pass'] ?? '';
-
-    if (empty($host) || empty($dbname) || empty($user) || empty($pass)) {
-        error_log("Missing database credentials at " . date('Y-m-d H:i:s') . " - " . print_r($db_params, true));
-        die("Missing database credentials. Check DATABASE_URL.");
-    }
-
     $dsn = "pgsql:host=$host;port=$port;dbname=$dbname";
     $conn = new PDO($dsn, $user, $pass);
     $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
@@ -40,12 +38,10 @@ try {
     die("Database connection failed: " . $e->getMessage());
 }
 
-// تنظیم CSRF Token
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 
-// تابع برای تنظیم InitData
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && strpos($_SERVER['REQUEST_URI'], 'setInitData') !== false) {
     header('Content-Type: application/json');
     $input = file_get_contents('php://input');
