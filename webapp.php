@@ -59,7 +59,7 @@ if (!isset($_SESSION['chat_id'])) {
     <title>Oil Drop Miner Web App</title>
     <link rel="preload" href="assets/images/backgrounds/auth_background_simple.jpg" as="image">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
     <div class="background-container">
@@ -131,6 +131,6 @@ if (!isset($_SESSION['chat_id'])) {
     </div>
 
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="main.js"></script>
+    <script src="assets/js/main.js"></script>
 </body>
 </html>
