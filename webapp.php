@@ -6,7 +6,9 @@ header('Access-Control-Allow-Origin: *');
 header('Content-Type: text/html; charset=utf-8');
 
 include 'config.php';
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 // دیباگ درخواست
 error_log("Request Headers: " . print_r($_SERVER, true));
