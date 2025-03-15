@@ -46,7 +46,8 @@ if ($user_blocked['is_blocked']) {
 }
 $stmt->close();
 
-$stmt = $conn->prepare("SELECT oil_drops, today_clicks, last_click_day, boost_multiplier, auto_clicker, ton_wallet_address, balance FROM users WHERE id = ? OR chat_id = ?");
+// گرفتن اطلاعات کاربر
+$stmt = $conn->prepare("SELECT oil_drops, today_clicks, boost_multiplier, auto_clicker, ton_wallet_address, balance FROM users WHERE id = ? OR chat_id = ?");
 $stmt->bind_param("ii", $user_id, $user_id);
 $stmt->execute();
 $result = $stmt->get_result();
@@ -59,7 +60,6 @@ if ($result->num_rows === 0) {
 $user = $result->fetch_assoc();
 $oil_drops = (int)$user['oil_drops'];
 $today_clicks = (int)$user['today_clicks'];
-$last_click_day = $user['last_click_day'];
 $boost_multiplier = (float)($user['boost_multiplier'] ?? 1.0);
 $auto_clicker = (bool)$user['auto_clicker'];
 $ton_wallet_address = $user['ton_wallet_address'];
@@ -73,6 +73,16 @@ $cards_result = $stmt->get_result();
 $active_cards = [];
 while ($card = $cards_result->fetch_assoc()) {
     $active_cards[] = $card;
+}
+
+// گرفتن پلن‌های خریداری‌شده
+$stmt = $conn->prepare("SELECT plan_type, purchase_date FROM user_plans WHERE user_id = ? AND is_active = 1");
+$stmt->bind_param("i", $user_id);
+$stmt->execute();
+$plans_result = $stmt->get_result();
+$active_plans = [];
+while ($plan = $plans_result->fetch_assoc()) {
+    $active_plans[] = $plan;
 }
 
 // پردازش فرم وصل کردن کیف پول (فقط در Web App)
@@ -179,19 +189,13 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['change_wallet']) && i
     .wallet-form { margin-top: 10px; max-width: 300px; margin-left: auto; margin-right: auto; }
     .wallet-input { background-color: #333 !important; border: 1px solid #b8860b !important; color: #ffffff !important; transition: all 0.3s ease; font-size: 0.9rem !important; }
     .wallet-input:focus { border-color: #daa520 !important; box-shadow: 0 0 8px rgba(218, 165, 32, 0.5) !important; background-color: #444 !important; }
-    .btn-wallet, .btn-mine, .btn-boost { background-color: #b8860b !important; border-color: #b8860b !important; color: #ffffff !important; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7) !important; font-size: 0.9rem !important; padding: 6px 12px !important; }
-    .btn-wallet:hover, .btn-mine:hover, .btn-boost:hover { background-color: #daa520 !important; transform: scale(1.05) !important; }
+    .btn-wallet { background-color: #b8860b !important; border-color: #b8860b !important; color: #ffffff !important; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7) !important; font-size: 0.9rem !important; padding: 6px 12px !important; }
+    .btn-wallet:hover { background-color: #daa520 !important; transform: scale(1.05) !important; }
     .container { max-width: 1000px; margin-top: 20px !important; padding-top: 0 !important; }
     .text-success, .text-danger { color: #ffffff !important; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7) !important; }
     .fw-bold { color: #ffcc00 !important; }
     .card-table { margin-top: 20px; background-color: rgba(255, 255, 255, 0.1); border-radius: 10px; padding: 15px; }
     .card-table th, .card-table td { color: #ffffff; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7); }
-    .shine { animation: shine 1s infinite; }
-    @keyframes shine {
-      0% { box-shadow: 0 0 5px #ffcc00; }
-      50% { box-shadow: 0 0 10px #daa520; }
-      100% { box-shadow: 0 0 5px #ffcc00; }
-    }
   </style>
 </head>
 <body>
@@ -202,18 +206,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['change_wallet']) && i
     <p><span class="dashboard-text warning">Your Oil Drops:</span> <span id="oil-count" class="fw-bold"><?php echo $oil_drops; ?></span></p>
     <p><span class="dashboard-text warning">Current Boost:</span> <span class="fw-bold"><?php echo number_format($boost_multiplier, 1); ?>×</span></p>
     <p><span class="dashboard-text">Auto Clicker:</span> <span class="text-<?php echo $auto_clicker ? 'success' : 'danger'; ?> fw-bold"><?php echo $auto_clicker ? 'Active ✅' : 'Inactive ❌'; ?></span></p>
-    <p><span class="dashboard-text warning">Clicks Left Today:</span> <span id="clicks-left" class="fw-bold"><?php echo 1000 - $today_clicks; ?></span></p>
+    <p><span class="dashboard-text warning">Today's Clicks:</span> <span id="clicks-today" class="fw-bold"><?php echo $today_clicks; ?>/1000</span></p>
     <p><span class="dashboard-text warning">TON Balance:</span> <span class="fw-bold balance-text"><?php echo number_format($balance, 2); ?> TON</span></p>
-
-    <!-- دکمه ماین -->
-    <button id="mine-btn" class="btn btn-mine shine mt-3" <?php if (1000 - $today_clicks <= 0) echo 'disabled'; ?>>Mine Oil</button>
-
-    <!-- دکمه‌های خرید پلن‌های بوست -->
-    <div class="mt-3">
-        <button id="buy-2x" class="btn btn-boost me-2">Buy 2x Boost</button>
-        <button id="buy-5x" class="btn btn-boost me-2">Buy 5x Boost</button>
-        <button id="buy-10x" class="btn btn-boost">Buy 10x Boost</button>
-    </div>
 
     <!-- نمایش کارت‌های فعال -->
     <?php if (!empty($active_cards)): ?>
@@ -240,6 +234,31 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['change_wallet']) && i
         </div>
     <?php else: ?>
         <p class="dashboard-text warning mt-3">No active Oil Cards found.</p>
+    <?php endif; ?>
+
+    <!-- نمایش پلن‌های فعال -->
+    <?php if (!empty($active_plans)): ?>
+        <div class="card-table">
+            <h4 class="text-warning mb-3">Active Plans</h4>
+            <table class="table table-dark">
+                <thead>
+                    <tr>
+                        <th>Plan Type</th>
+                        <th>Purchase Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($active_plans as $plan): ?>
+                        <tr>
+                            <td><?php echo htmlspecialchars($plan['plan_type']); ?></td>
+                            <td><?php echo htmlspecialchars($plan['purchase_date']); ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+    <?php else: ?>
+        <p class="dashboard-text warning mt-3">No active plans found.</p>
     <?php endif; ?>
 
     <!-- بخش وصل کردن کیف پول TON -->
@@ -275,8 +294,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['change_wallet']) && i
 
   <?php include 'footer.php'; ?>
 
-  <!-- اضافه کردن main.js برای مدیریت ماین و خرید پلن‌ها -->
-  <script src="assets/js/main.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>

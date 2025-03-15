@@ -15,10 +15,23 @@ error_log("Request Headers: " . print_r($_SERVER, true));
 error_log("Request Method: " . $_SERVER['REQUEST_METHOD']);
 error_log("Query String: " . (isset($_SERVER['QUERY_STRING']) ? $_SERVER['QUERY_STRING'] : 'Not set'));
 
-// اگر chat_id توی پارامتر GET اومده، توی سشن ذخیره کن
-if (isset($_GET['chat_id']) && !empty($_GET['chat_id'])) {
-    $_SESSION['chat_id'] = $_GET['chat_id'];
-    error_log("Chat ID set from GET parameter: " . $_SESSION['chat_id']);
+// اگر توکن توی پارامتر GET اومده، chat_id رو از دیتابیس بخون
+if (isset($_GET['token']) && !empty($_GET['token'])) {
+    $token = $_GET['token'];
+    $stmt = $conn->prepare("SELECT chat_id FROM temp_auth_tokens WHERE token = :token");
+    $stmt->execute(['token' => $token]);
+    $result = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    if ($result) {
+        $_SESSION['chat_id'] = $result['chat_id'];
+        error_log("Chat ID set from token: " . $_SESSION['chat_id']);
+        
+        // حذف توکن از دیتابیس بعد از استفاده
+        $stmt = $conn->prepare("DELETE FROM temp_auth_tokens WHERE token = :token");
+        $stmt->execute(['token' => $token]);
+    } else {
+        error_log("Invalid or expired token: " . $token);
+    }
 }
 
 if (!isset($_SESSION['chat_id'])) {
@@ -50,6 +63,11 @@ if (!isset($_SESSION['chat_id'])) {
         $active_cards_stmt = $conn->prepare("SELECT card_id, card_type, reward FROM user_cards WHERE chat_id = :chat_id");
         $active_cards_stmt->execute(['chat_id' => $chat_id]);
         $active_cards = $active_cards_stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // گرفتن پلن‌های خریداری‌شده
+        $plans_stmt = $conn->prepare("SELECT plan_type, purchase_date FROM user_plans WHERE chat_id = :chat_id AND is_active = TRUE");
+        $plans_stmt->execute(['chat_id' => $chat_id]);
+        $active_plans = $plans_stmt->fetchAll(PDO::FETCH_ASSOC);
     } catch (PDOException $e) {
         error_log("Database error: " . $e->getMessage());
         die("Database error: " . htmlspecialchars($e->getMessage()));
@@ -91,22 +109,29 @@ if (!isset($_SESSION['chat_id'])) {
                 <p class="card-text">Today's Clicks: <strong><?php echo htmlspecialchars($today_clicks); ?>/1000</strong></p>
             </div>
 
-            <h2 class="text-center text-warning mb-4">Mine Oil</h2>
-            <div class="mine-button-container">
-                <img src="assets/images/mine-button.png" alt="Mine Oil" id="mine-btn" class="mine-image <?php echo $clicks_left > 0 ? 'shine' : ''; ?>" data-clicks-left="<?php echo htmlspecialchars($clicks_left); ?>" <?php echo $clicks_left <= 0 ? 'disabled' : ''; ?>>
-            </div>
-            <p class="text-center text-white" id="clicks-left">Clicks Left: <?php echo htmlspecialchars($clicks_left); ?></p>
+            <h2 class="text-center text-warning mb-4">Active Cards</h2>
+            <?php if (count($active_cards) > 0): ?>
+                <?php foreach ($active_cards as $card): ?>
+                    <div class="dashboard-card">
+                        <h5>Card ID: <?php echo htmlspecialchars($card['card_id']); ?> (Type: <?php echo htmlspecialchars($card['card_type']); ?>)</h5>
+                        <p class="card-text">Reward: <strong><?php echo htmlspecialchars($card['reward']); ?> Oil Drops / 8h</strong></p>
+                    </div>
+                <?php endforeach; ?>
+            <?php else: ?>
+                <p class="text-center text-white">You have no active cards.</p>
+            <?php endif; ?>
 
-            <h2 class="text-center text-warning mb-4">Purchase Boost Plans</h2>
-            <div class="dashboard-card">
-                <form method="post" action="plans.php">
-                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
-                    <button type="submit" name="plan" value="2x" class="btn btn-warning m-2">Buy 2x Boost (0.2 TON)</button>
-                    <button type="submit" name="plan" value="5x" class="btn btn-warning m-2">Buy 5x Boost (0.5 TON)</button>
-                    <button type="submit" name="plan" value="10x" class="btn btn-warning m-2">Buy 10x Boost (2.25 TON)</button>
-                    <button type="submit" name="plan" value="auto_clicker" class="btn btn-success m-2">Auto Clicker (30 Days) (5 TON)</button>
-                </form>
-            </div>
+            <h2 class="text-center text-warning mb-4">Active Plans</h2>
+            <?php if (count($active_plans) > 0): ?>
+                <?php foreach ($active_plans as $plan): ?>
+                    <div class="dashboard-card">
+                        <h5>Plan: <?php echo htmlspecialchars($plan['plan_type']); ?></h5>
+                        <p class="card-text">Purchased On: <strong><?php echo htmlspecialchars($plan['purchase_date']); ?></strong></p>
+                    </div>
+                <?php endforeach; ?>
+            <?php else: ?>
+                <p class="text-center text-white">You have no active plans.</p>
+            <?php endif; ?>
 
             <h2 class="text-center text-warning mb-4">Deposit TON</h2>
             <div class="dashboard-card">
@@ -119,18 +144,6 @@ if (!isset($_SESSION['chat_id'])) {
                 </form>
                 <p class="text-center text-white mt-2">Send TON to: <strong><?php echo htmlspecialchars('UQDCy7GZFzZCUwM4_R7ZgqZW34aDfgV9CEY8BX-ucyQRxGfo'); ?></strong></p>
             </div>
-
-            <h2 class="text-center text-warning mb-4">Active Cards</h2>
-            <?php if (count($active_cards) > 0): ?>
-                <?php foreach ($active_cards as $card): ?>
-                    <div class="dashboard-card">
-                        <h5>Card ID: <?php echo htmlspecialchars($card['card_id']); ?> (Type: <?php echo htmlspecialchars($card['card_type']); ?>)</h5>
-                        <p class="card-text">Reward: <strong><?php echo htmlspecialchars($card['reward']); ?> Oil Drops / 8h</strong></p>
-                    </div>
-                <?php endforeach; ?>
-            <?php else: ?>
-                <p class="text-center text-white">You have no active cards.</p>
-            <?php endif; ?>
         <?php else: ?>
             <p class="text-center text-warning">Loading... Please wait while we authenticate you via Telegram.</p>
         <?php endif; ?>
